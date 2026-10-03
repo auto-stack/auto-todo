@@ -1,0 +1,92 @@
+{
+  "repository": "auto-todo",
+  "date": "2026-10-03",
+  "sources": [
+    {
+      "repo": "auto-lang",
+      "commit": "17292c07e792e80d4e4da5495fc3fc2917e8aa1e",
+      "path": "examples/ui/013-todo",
+      "primary": true,
+      "fileCount": 13,
+      "pacFields": {
+        "name": "todo",
+        "version": "1.0.0",
+        "scene": "ui",
+        "render": "vue",
+        "icon": "list-checks",
+        "title": "Todo",
+        "title_zh": "待办清单",
+        "api": "rust",
+        "desktop": "true"
+      },
+      "files": [
+        {
+          "sourcePath": "examples/ui/013-todo/README.md",
+          "path": "README.md",
+          "sha256": "4825e18e625ef2792e52e1bf2fd933ef0fba9920116450e0678228dec0447d51"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/pac.at",
+          "path": "pac.at",
+          "sha256": "b46c907a6c4fb3921ae640dbaede12c382913f08987f1c1d566d43e75ba0d147"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/back/api.at",
+          "path": "src/back/api.at",
+          "sha256": "0238b47e4e87e5823ed5549b4bb3339b9a50406a23dac3f3b4c3f18a13901321"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/back/db.at",
+          "path": "src/back/db.at",
+          "sha256": "c4a7687db12dbd68ac93f5663d8628834181a89912b80dd5a97c7fa37221c02a"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/front/app.at",
+          "path": "src/front/app.at",
+          "sha256": "0cfb11e6b07a382e3c4644cb4b51ef98162cddeb467af37a4d23f09fa52fe235"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/front/todo_item.at.disabled",
+          "path": "src/front/todo_item.at.disabled",
+          "sha256": "2b016deec5b2da788d6aed87bd2a62723e7e100bad628eb223bf5d2266fbb10e"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/front/todo_list.at",
+          "path": "src/front/todo_list.at",
+          "sha256": "18a31cb476dca6ae019304afc122942872e69cd64d55b69bd0a5ba2f9c135959"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/front/todo_store.at",
+          "path": "src/front/todo_store.at",
+          "sha256": "80090867afe41d0954b507dd11a6cb8d212fb439112a2ef11a0d95c837bd55bf"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/src/front/types.at",
+          "path": "src/front/types.at",
+          "sha256": "b4cec1f2cc54612c769602c3a89f02a4b1a5c3a68abd2822d31d0ab3d4d7504d"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/tests/013-todo.autotest",
+          "path": "tests/013-todo.autotest",
+          "sha256": "8c7518a49eacbda5a9a8bfed71ed71dd4643fb74c5fa17b6a24a46fb4c14b1de"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/tests/autotest/__init__.py",
+          "path": "tests/autotest/__init__.py",
+          "sha256": "bb048826187922fd341ba6a4dff3564c3bf286ae3529cfb05dd8c561a537a13d"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/tests/desktop_mcp.py",
+          "path": "tests/desktop_mcp.py",
+          "sha256": "932e10f3cc72ec46829b739dfdeb87871aa12eb23ad7dc050fcda02c0402d98a"
+        },
+        {
+          "sourcePath": "examples/ui/013-todo/tests/run_autotest.py",
+          "path": "tests/run_autotest.py",
+          "sha256": "7bd207a0fcc39aa6609eb71d35544806ee27810e739febb7c0f3f4e3bc5f91e4"
+        }
+      ]
+    }
+  ],
+  "note": "Exact committed source snapshots; packaging changes follow in a separate commit. References are not additional installed apps."
+}
