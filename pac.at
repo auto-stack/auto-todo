@@ -7,3 +7,5 @@ title: "Todo"
 title_zh: "待办清单"
 api: "rust"
 desktop: "true"
+front_port: 17814
+back_port: 17815

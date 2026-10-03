@@ -1,101 +1,24 @@
-# 013-todo — TodoMVC
+# auto-todo
 
-A complete [TodoMVC](https://todomvc.com) implementation built with Auto Language, demonstrating full-featured UI development with the AURA widget system and Vue code generation.
+待办，使用 AutoLang / AutoUI 开发的独立应用。
 
-## Features
+本仓是首批产品源码基线；当前能力以导入版本为准，仓库描述中的产品方向不表示全部已实现。
 
-All standard TodoMVC features are implemented:
+## 运行
 
-- **Add todo** — Type text and press Enter
-- **Toggle todo** — Click checkbox to mark as done/undone
-- **Toggle all** — Top checkbox toggles all todos at once
-- **Delete todo** — Hover to reveal destroy button (×)
-- **Edit todo** — Double-click todo text to enter edit mode
-- **Commit edit** — Press Enter or click outside to save
-- **Clear completed** — Remove all completed todos
-- **Filter** — All / Active / Completed filter buttons
-- **Item count** — Live count of remaining active items
+安装对应版本的 `auto` CLI 后，从本仓根执行：
 
-## Concepts
-
-- **Array model** — `var todos = []` with dynamic push/splice operations
-- **Typed message variants** — `msg Msg { ToggleTodo(int), DeleteTodo(int), ... }` with parameterized events
-- **For-loop rendering** — `for todo in .todos { ... }` iterates over todo list
-- **Conditional rendering** — `if .filter == "all"` for filter-based visibility
-- **Event handlers** — `onclick`, `ondblclick`, `onenter`, `onblur`, `oninput`
-- **F-string interpolation** — `f"${.active_count} items left"` for dynamic text
-- **Computed state** — `active_count` tracked incrementally on toggle/delete
-- **CSS integration** — Inline todomvc-app-css styles for authentic TodoMVC appearance
-
-## Source
-
-See `src/front/app.at` — the entire TodoMVC application in ~285 lines of Auto code.
-
-### Model
-
-```auto
-model {
-    var input str = ""
-    var todos = []
-    var next_id int = 1
-    var filter str = "all"
-    var editing_id int = -1
-    var edit_text str = ""
-    var active_count int = 0
-}
+```sh
+auto run
+auto run -r vm
 ```
 
-### Messages
+前端端口：`17814`。后端端口：`17815`。
 
-```auto
-msg {
-    Init,
-    AddTodo,
-    ToggleTodo(int),
-    DeleteTodo(int),
-    ToggleAll,
-    EditTodo(int),
-    CommitEdit,
-    EditInputChanged,
-    FilterAll,
-    FilterActive,
-    FilterCompleted,
-    ClearCompleted
-}
-```
+## 来源与组合
 
-## How to Run
+来源提交、路径与文件 hash 见 `SOURCE-IMPORT.json`。首次导入提交保留在 `source-sync` 分支；完整 v0.5 恢复后从该基线导入差异，再与产品开发线合并。
 
-```bash
-cd examples/ui/013-todo
-auto gen              # Generate Vue project
-auto run              # Start dev server (localhost:3001)
-```
+AutoOS 通过 [`apps/013-todo`](https://github.com/auto-stack/auto-os/tree/v0.6-dev/apps/013-todo) submodule 固定本仓版本；教学 Demo 保留在来源仓。
 
-Generated project appears in `gen/front/vue/` — Vue 3 + shadcn-vue + Vite.
-
-## Browser Verification
-
-All TodoMVC features have been verified via automated browser testing:
-
-| Feature | Status |
-|---------|--------|
-| Add todo (Enter) | ✅ |
-| Toggle single todo | ✅ |
-| Delete todo | ✅ |
-| Toggle all | ✅ |
-| Filter: All / Active / Completed | ✅ |
-| Clear completed | ✅ |
-| Double-click to edit | ✅ |
-| Active item count | ✅ |
-
-## Known Limitations
-
-- **No Escape to cancel edit** — AURA has no `onescape` event mapping yet
-- **Edit text update** — `EditInputChanged` handler is a no-op (`input = input`); relies on Vue `v-model` for actual state sync
-- **No route-based filtering** — Uses `filter` state variable instead of Vue Router
-- **No localStorage persistence** — Data is lost on page refresh (no storage binding in AURA yet)
-
-## Inspiration
-
-[TodoMVC](https://todomvc.com) — Reference implementation based on `todomvc/examples/vue`.
+已有测试随源导入；端口与平台相关测试需要按本仓配置准备运行环境。安装/启动与双端完整功能验收是不同检查项。
