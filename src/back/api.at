@@ -1,6 +1,10 @@
 // back/api.at — Todo API Interface
 // CRUD endpoints for the TodoMVC app.
 // In rust merged mode these are in-process direct calls (not HTTP).
+//
+// TODO-001：结果契约结构化（AC-03）——缺失 ID、空白输入、写失败、损坏库
+// 一律 ok=false + err_code 可区分呈现，绝不假报成功；正常路径保持原端点
+// 路径与方法不变。
 
 // ═══════════════════════════════════════════════════════════
 // Types (shared between frontend and backend)
@@ -13,6 +17,25 @@ pub type Todo = {
     done: bool
 }
 
+/// 读取结果：ok=false 时 todos 为空，err_code 可区分
+/// （storage_unwritable | corrupt | schema_unsupported | second_writer）。
+pub type LoadResult = {
+    ok: bool
+    err_code: str
+    todos: []Todo
+}
+
+/// 变更结果：成功带受影响任务（count 为批量数）；失败时 todo.id = -1。
+/// err_code: "" | blank_input | not_found | storage_unwritable | second_writer |
+///           corrupt | schema_unsupported | fault_injected
+pub type MutationResult = {
+    ok: bool
+    err_code: str
+    err_detail: str
+    todo: Todo
+    count: int
+}
+
 // ═══════════════════════════════════════════════════════════
 // API Endpoints
 // ═══════════════════════════════════════════════════════════
@@ -22,34 +45,71 @@ use db
 /// List all todos
 /// GET /api/todos
 #[api(method = "GET", path = "/api/todos")]
-pub fn list_todos() []Todo {
-    return db.all_todos()
+pub fn list_todos() LoadResult {
+    return db.load_todos()
 }
 
 /// Create a new todo
 /// POST /api/todos
 #[api(method = "POST", path = "/api/todos")]
-pub fn create_todo(text str) Todo {
+pub fn create_todo(text str) MutationResult {
     return db.create_todo(text)
 }
 
 /// Update a todo's text and done status
 /// PUT /api/todos/:id
 #[api(method = "PUT", path = "/api/todos/:id")]
-pub fn update_todo(id int, text str, done bool) ?Todo {
+pub fn update_todo(id int, text str, done bool) MutationResult {
     return db.update_todo(id, text, done)
 }
 
 /// Delete a todo
 /// DELETE /api/todos/:id
 #[api(method = "DELETE", path = "/api/todos/:id")]
-pub fn delete_todo(id int) bool {
+pub fn delete_todo(id int) MutationResult {
     return db.delete_todo(id)
 }
 
 /// Clear all completed todos
 /// DELETE /api/todos/completed
 #[api(method = "DELETE", path = "/api/todos/completed")]
-pub fn remove_completed(done bool) bool {
+pub fn remove_completed(done bool) MutationResult {
     return db.remove_completed(done)
+}
+
+/// Storage diagnostics (data dir, schema version, counter, backup)
+/// GET /api/storage-status
+#[api(method = "GET", path = "/api/storage-status")]
+pub fn storage_status() str {
+    return db.storage_status()
+}
+
+// ═══════════════════════════════════════════════════════════
+// TODO-001 / T-01 能力探针（AUTO_TODO_PROBE=1 门禁在 probe 内部；
+// 其余一律返回 "disabled"。门禁常留作能力回归入口）
+// ═══════════════════════════════════════════════════════════
+
+#[api(method = "GET", path = "/api/probe/open")]
+pub fn probe_open() str {
+    return db.probe_open()
+}
+
+#[api(method = "GET", path = "/api/probe/txn")]
+pub fn probe_txn() str {
+    return db.probe_txn()
+}
+
+#[api(method = "GET", path = "/api/probe/busy")]
+pub fn probe_busy() str {
+    return db.probe_busy()
+}
+
+#[api(method = "GET", path = "/api/probe/rollback")]
+pub fn probe_rollback() str {
+    return db.probe_rollback()
+}
+
+#[api(method = "GET", path = "/api/probe/escape")]
+pub fn probe_escape() str {
+    return db.probe_escape()
 }

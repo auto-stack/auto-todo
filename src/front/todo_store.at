@@ -1,12 +1,19 @@
 // front/todo_store.at — SharedStore for todos.
 // Client-side cache backed by the Todo API. Mirrors 015-notes notes_store.at.
+//
+// TODO-001：接真实持久化存储（SQLite 单写者，见 back/repository.at）。
+// 失败契约（AC-03/T-04）：
+//   - 加载失败 → load_err 记录 err_code，列表置空并显示错误横幅（可重试），
+//     绝不以空列表或演示任务冒充用户数据；
+//   - 变更失败 → action_err 记录 err_code，保留待提交文本（AddTodo 不清空
+//     input；CommitEdit 不退出编辑态），UI 显示失败横幅，绝无成功假象；
+//   - 变更成功才清输入/重拉列表。
 
 use back.api: list_todos, create_todo, update_todo, delete_todo, remove_completed
 
 store TodoStore {
     model {
         var todos []Todo = []
-        var next_id int = 0
         var active_count int = 0
         // PLAN-035 T-06：未完成前三预览（mini 右列；标量槽位形态——.at
         // 无视图期列表切片原语，与 active_count 同臂维护）。
@@ -18,30 +25,44 @@ store TodoStore {
         // 编辑态由 store 集中管理（与 VM 单一状态堆语义一致）。
         var editing_id int = -1
         var edit_text str = ""
+        // TODO-001：失败可见性（err_code 原样呈现；空串 = 无错误）
+        var load_err str = ""
+        var action_err str = ""
     }
 
     msg { Init, Refresh, AddTodo, SetInput(str), ToggleTodo(int), DeleteTodo(int),
               ToggleAll, ClearCompleted,
               StartEdit(int), SetEditText(str), CommitEdit, CancelEdit,
-              Recompute }
+              Recompute, DismissActionErr }
 
     on {
         .Init -> {
-            .todos = list_todos()
-            .Recompute()
+            .Refresh()
         }
 
         .Refresh -> {
-            .todos = list_todos()
+            var r LoadResult = list_todos()
+            if r.ok {
+                .todos = r.todos
+                .load_err = ""
+            } else {
+                .todos = []
+                .load_err = r.err_code
+            }
             .Recompute()
         }
 
         .AddTodo -> {
             if .input != "" {
-                create_todo(.input)
-                .todos = list_todos()
-                .Recompute()
-                .input = ""
+                var r MutationResult = create_todo(.input)
+                if r.ok {
+                    .input = ""
+                    .action_err = ""
+                    .Refresh()
+                } else {
+                    // 失败保留待提交文本，不提前清空（AC-03）
+                    .action_err = r.err_code
+                }
             }
         }
 
@@ -60,32 +81,52 @@ store TodoStore {
                 }
                 idx = idx + 1
             }
-            update_todo(id, current_text, !current_done)
-            .todos = list_todos()
-            .Recompute()
+            var r MutationResult = update_todo(id, current_text, !current_done)
+            if r.ok {
+                .action_err = ""
+            } else {
+                .action_err = r.err_code
+            }
+            .Refresh()
         }
 
         .DeleteTodo(id) -> {
-            delete_todo(id)
-            .todos = list_todos()
-            .Recompute()
+            var r MutationResult = delete_todo(id)
+            if r.ok {
+                .action_err = ""
+            } else {
+                .action_err = r.err_code
+            }
+            .Refresh()
         }
 
         .ToggleAll -> {
             var all_done bool = .active_count == 0
             var i int = 0
+            var failed bool = false
             for i < .todos.len() {
-                update_todo(.todos[i].id, .todos[i].text, !all_done)
+                var r MutationResult = update_todo(.todos[i].id, .todos[i].text, !all_done)
+                if r.ok == false {
+                    failed = true
+                }
                 i = i + 1
             }
-            .todos = list_todos()
-            .Recompute()
+            if failed {
+                .action_err = "partial_update"
+            } else {
+                .action_err = ""
+            }
+            .Refresh()
         }
 
         .ClearCompleted -> {
-            remove_completed(true)
-            .todos = list_todos()
-            .Recompute()
+            var r MutationResult = remove_completed(true)
+            if r.ok {
+                .action_err = ""
+            } else {
+                .action_err = r.err_code
+            }
+            .Refresh()
         }
 
         // PLAN-035 T-06：active_count + preview（未完成前三）单一重算臂
@@ -134,26 +175,47 @@ store TodoStore {
         .CommitEdit -> {
             if .editing_id >= 0 {
                 if .edit_text == "" {
-                    delete_todo(.editing_id)
+                    // TodoMVC 语义：编辑为空 = 删除该任务
+                    var dr MutationResult = delete_todo(.editing_id)
+                    if dr.ok {
+                        .editing_id = -1
+                        .edit_text = ""
+                        .action_err = ""
+                        .Refresh()
+                    } else {
+                        // 失败保留编辑态与文本，可重试
+                        .action_err = dr.err_code
+                    }
                 } else {
+                    var current_done bool = false
                     var idx int = 0
                     for idx < .todos.len() {
                         if .todos[idx].id == .editing_id {
-                            update_todo(.editing_id, .edit_text, .todos[idx].done)
+                            current_done = .todos[idx].done
                         }
                         idx = idx + 1
                     }
+                    var r MutationResult = update_todo(.editing_id, .edit_text, current_done)
+                    if r.ok {
+                        .editing_id = -1
+                        .edit_text = ""
+                        .action_err = ""
+                        .Refresh()
+                    } else {
+                        // 失败保留编辑态与文本，可重试（AC-03）
+                        .action_err = r.err_code
+                    }
                 }
-                .todos = list_todos()
-                .Recompute()
-                .editing_id = -1
-                .edit_text = ""
             }
         }
 
         .CancelEdit -> {
             .editing_id = -1
             .edit_text = ""
+        }
+
+        .DismissActionErr -> {
+            .action_err = ""
         }
     }
 }

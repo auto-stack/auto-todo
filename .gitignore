@@ -15,3 +15,11 @@ __pycache__/
 /tmp/
 /test-results/
 /playwright-report/
+
+# Plan evidence (local-only; deliberate *.md summaries may be committed)
+docs/plans/attachments/**
+!docs/plans/attachments/**/*.md
+
+# transpiler scratch outputs (local)
+*.a2r.rs
+*.a2r.rs.assembly.json

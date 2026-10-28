@@ -6,3 +6,19 @@ type Todo {
     text str
     done bool
 }
+
+// TODO-001：结构化结果契约（AC-03）——读取/变更失败以 ok=false + err_code
+// 呈现，前端不把失败当成功，也不静默清空用户输入。
+type LoadResult {
+    ok bool
+    err_code str
+    todos []Todo
+}
+
+type MutationResult {
+    ok bool
+    err_code str
+    err_detail str
+    todo Todo
+    count int
+}

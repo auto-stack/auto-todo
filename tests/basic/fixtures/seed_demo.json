@@ -1,0 +1,6 @@
+[
+  { "id": 0, "text": "Learn Auto Language", "done": true },
+  { "id": 1, "text": "Build a TodoMVC app", "done": false },
+  { "id": 2, "text": "Master the a2r transpiler", "done": false },
+  { "id": 3, "text": "Write integration tests", "done": false }
+]

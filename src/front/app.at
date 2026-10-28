@@ -13,7 +13,7 @@ use todo_list: TodoList
 
 widget App {
     msg {
-        Init, AddTodo, ToggleAll
+        Init, AddTodo, ToggleAll, StoreInput(str)
     }
 
     model {
@@ -33,7 +33,9 @@ widget App {
             col {
                 style: "bg-card w-full max-w-xl shadow-lg rounded-lg overflow-hidden"
 
-                // Input row
+                // Input row — 输入绑定 store.input（T-04）：App 本地副本与
+                // store.AddTodo 读取的不是同一状态，回车创建会因 store 输入
+                // 恒空而静默失效（v0.5 导入缺陷，实测见 Plan §9）。
                 row {
                     style: "flex items-center border-b border-border"
                     checkbox {
@@ -42,7 +44,8 @@ widget App {
                         style: "w-10 h-12 ml-2"
                     }
                     input {
-                        value: .input
+                        value: .store.input
+                        oninput: .StoreInput
                         onenter: .AddTodo
                         placeholder: "What needs to be done?"
                         style: "flex-1 text-xl px-2 py-3 outline-none"
@@ -105,6 +108,10 @@ widget App {
     on {
         .Init -> {
             store.Init()
+        }
+
+        .StoreInput(text) -> {
+            store.SetInput(text)
         }
 
         .AddTodo -> {

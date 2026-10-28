@@ -19,7 +19,8 @@ style filter_btn_inactive = "px-2 py-1 border border-transparent rounded text-xs
 
 widget TodoList() {
     msg { FilterAll, FilterActive, FilterCompleted, ToggleTodo(int), DeleteTodo(int),
-              StartEdit(int), CommitEdit, CancelEdit, EditInputChanged(str), ClearCompleted }
+              StartEdit(int), CommitEdit, CancelEdit, EditInputChanged(str), ClearCompleted,
+              RetryLoad, DismissErr }
 
     model {
         var filter str = "all"
@@ -28,6 +29,34 @@ widget TodoList() {
     view {
         col {
             style: "border-t border-border"
+
+            // TODO-001：加载失败横幅——绝不用空列表/演示数据冒充，可重试
+            if .store.load_err != "" {
+                row {
+                    style: "flex items-center justify-between px-4 py-2 bg-red-50 border-b border-red-300"
+                    text f"任务加载失败：${.store.load_err}" {
+                        style: "text-sm text-red-700"
+                    }
+                    button "重试" {
+                        onclick: .RetryLoad
+                        style: "ml-2 px-3 py-1 text-xs border border-red-400 text-red-700 rounded hover:bg-red-100"
+                    }
+                }
+            }
+
+            // TODO-001：变更失败横幅——失败不冒充成功，保留待提交内容
+            if .store.action_err != "" {
+                row {
+                    style: "flex items-center justify-between px-4 py-2 bg-red-50 border-b border-red-300"
+                    text f"保存失败：${.store.action_err}（内容已保留，可重试）" {
+                        style: "text-sm text-red-700"
+                    }
+                    button "×" {
+                        onclick: .DismissErr
+                        style: "ml-2 w-6 h-6 text-sm text-red-500 hover:text-red-700"
+                    }
+                }
+            }
 
             // Todo items — inline rendering with centralized editing state (§18)
             col {
@@ -134,6 +163,14 @@ widget TodoList() {
 
         .ClearCompleted -> {
             store.ClearCompleted()
+        }
+
+        .RetryLoad -> {
+            store.Refresh()
+        }
+
+        .DismissErr -> {
+            store.DismissActionErr()
         }
     }
 }

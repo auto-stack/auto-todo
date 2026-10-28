@@ -1,82 +1,112 @@
-// back/db.at — Todo Database Service
-// In-memory storage with seed data.
+// back/db.at — Todo 数据入口（TODO-001）。
+// 类型化门面：repository.at 全部 I/O 为 JSON 字符串（SQLite 单写者可靠存储，
+// 能力依据 docs/plans/evidence/001/capability-decision.md）；本模块经 json.get/
+// as_* 访问器解析并构造 api 类型视图。旧内存实现（含四条演示种子）已退役——
+// 运行时绝无种子。
 
-use api: Todo
+use api: Todo, LoadResult, MutationResult
+use repository
+use probe
 
-// ═══════════════════════════════════════════════════════════
-// In-memory storage (seed data)
-// ═══════════════════════════════════════════════════════════
-
-var todos List<Todo> = List<Todo>.new([
-    Todo { id: 0, text: "Learn Auto Language", done: true },
-    Todo { id: 1, text: "Build a TodoMVC app", done: false },
-    Todo { id: 2, text: "Master the a2r transpiler", done: false },
-    Todo { id: 3, text: "Write integration tests", done: false },
-])
-
-var nextid int = 4
-
-// ═══════════════════════════════════════════════════════════
-// CRUD operations
-// ═══════════════════════════════════════════════════════════
-
-/// Return all todos
-pub fn all_todos() []Todo {
-    return todos
-}
-
-/// Create a new todo, returns the created todo
-pub fn create_todo(text str) Todo {
-    let todo = Todo { id: nextid, text: text, done: false }
-    nextid = nextid + 1
-    todos.push(todo)
-    return todo
-}
-
-/// Update a todo's text and done status, returns the updated todo
-pub fn update_todo(id int, text str, done bool) ?Todo {
-    var new_todos List<Todo> = List<Todo>.new([])
-    var found ?Todo = None
-    for todo in todos {
-        if todo.id == id {
-            let updated = Todo {
-                id: todo.id,
-                text: text,
-                done: done,
-            }
-            new_todos.push(updated)
-            found = Some(updated)
-        } else {
-            new_todos.push(todo)
-        }
+fn todo_of(js str) Todo {
+    var it = json.parse(js)
+    // json.as_bool 与 a2r_std 有 SIGNATURE_DRIFT（T-01 登记的工具链缺口），
+    // 布尔经 json.encode 字面量比较。
+    var done_txt str = json.encode(json.get(it, "done"))
+    var t Todo = Todo {
+        id: json.as_int(json.get(it, "id")),
+        text: json.as_string(json.get(it, "text")),
+        done: done_txt == "true",
     }
-    todos = new_todos
-    return found
+    return t
 }
 
-/// Delete a todo by id, returns true if deleted
-pub fn delete_todo(id int) bool {
-    var new_todos List<Todo> = List<Todo>.new([])
-    var found bool = false
-    for todo in todos {
-        if todo.id != id {
-            new_todos.push(todo)
-        } else {
-            found = true
-        }
+/// 全量任务：存储/损坏/版本错误以 ok=false + err_code 呈现（不静默空列表）。
+pub fn load_todos() LoadResult {
+    var js str = repository.repo_list()
+    var it = json.parse(js)
+    var todos []Todo = []
+    var arr = json.get(it, "todos")
+    var n int = json.len(arr)
+    for i in 0..n {
+        var el = json.get_at(arr, i)
+        var eljs str = json.encode(el)
+        todos.push(todo_of(eljs))
     }
-    todos = new_todos
-    return found
+    var ok_txt str = json.encode(json.get(it, "ok"))
+    var r LoadResult = LoadResult {
+        ok: ok_txt == "true",
+        err_code: json.as_string(json.get(it, "err_code")),
+        todos: todos,
+    }
+    return r
 }
 
-/// Remove all completed todos, returns true
-pub fn remove_completed(done bool) bool {
-    var new_todos List<Todo> = List<Todo>.new([])
-    for todo in todos {
-        if !todo.done {
-            new_todos.push(todo)
-        }
+fn mutation_of(js str) MutationResult {
+    var it = json.parse(js)
+    var todojs str = json.encode(json.get(it, "todo"))
+    var ok_txt str = json.encode(json.get(it, "ok"))
+    var r MutationResult = MutationResult {
+        ok: ok_txt == "true",
+        err_code: json.as_string(json.get(it, "err_code")),
+        err_detail: json.as_string(json.get(it, "err_detail")),
+        todo: todo_of(todojs),
+        count: json.as_int(json.get(it, "count")),
     }
-    todos = new_todos
-    return true
+    return r
+}
+
+/// 创建任务。失败码：blank_input | storage_unwritable | second_writer |
+/// corrupt | schema_unsupported | fault_injected。
+pub fn create_todo(text str) MutationResult {
+    var rj str = repository.repo_create(text)
+    return mutation_of(rj)
+}
+
+/// 更新任务文本/完成态。不存在 ID → not_found（ok=false，不再冒充 404 空体）。
+pub fn update_todo(id int, text str, done bool) MutationResult {
+    var rj str = repository.repo_update(id, text, done)
+    return mutation_of(rj)
+}
+
+/// 删除任务。不存在 ID → not_found。
+pub fn delete_todo(id int) MutationResult {
+    var rj str = repository.repo_delete(id)
+    return mutation_of(rj)
+}
+
+/// 清已完成。count = 实际删除数。
+pub fn remove_completed(done bool) MutationResult {
+    var rj str = repository.repo_remove_completed()
+    return mutation_of(rj)
+}
+
+/// 存储诊断（目录/版本/计数/分配器/备份）。
+pub fn storage_status() str {
+    return repository.repo_status()
+}
+
+// ═══════════════════════════════════════════════════════════
+// 能力探针委托（T-01；AUTO_TODO_PROBE=1 门禁在 probe 内部）。
+// 生成器要求所有 #[api] 端点经 db 层，故在此薄委托。
+// ═══════════════════════════════════════════════════════════
+
+pub fn probe_open() str {
+    return probe.open_probe()
+}
+
+pub fn probe_txn() str {
+    return probe.txn_probe()
+}
+
+pub fn probe_busy() str {
+    return probe.busy_probe()
+}
+
+pub fn probe_rollback() str {
+    return probe.rollback_probe()
+}
+
+pub fn probe_escape() str {
+    return probe.escape_probe()
 }

@@ -1,0 +1,190 @@
+// probe.at — TODO-001 / T-01 存储能力探针（应用内实测，隔离数据）。
+// 门禁：AUTO_TODO_PROBE=1 否则一律返回 "disabled"（变更型测试钩子不得常驻生效）。
+// 探针库：AUTO_TODO_PROBE_DB（必须显式指向隔离路径；缺省拒跑并报 probe_db_required，
+// 绝不触碰用户库 todos.db）。证据记录：docs/plans/evidence/001/capability-decision.md。
+
+use auto.env
+use auto.json
+use auto.sqlite
+
+fn probe_enabled() str {
+    return env.get("AUTO_TODO_PROBE")
+}
+
+fn probe_guard() str {
+    if probe_enabled() == "1" {
+        return "ok"
+    }
+    return "disabled"
+}
+
+fn probe_db() str {
+    return env.get("AUTO_TODO_PROBE_DB")
+}
+
+/// 打开 + PRAGMA（WAL / busy_timeout）+ 建表 + 插入/查询往返
+pub fn open_probe() str {
+    if probe_guard() == "disabled" {
+        return "disabled"
+    }
+    var path str = probe_db()
+    if path == "" {
+        return "probe_db_required"
+    }
+    var db SqliteDb = sqlite.open(path)
+    var jm int = db.exec("PRAGMA journal_mode=WAL")
+    var bt int = db.exec("PRAGMA busy_timeout=3000")
+    var r int = db.exec("CREATE TABLE IF NOT EXISTS p1(k TEXT PRIMARY KEY, v TEXT)")
+    var w int = db.exec("INSERT OR REPLACE INTO p1(k, v) VALUES('open-probe', 'seen')")
+    var rows List<List<str>> = db.query("SELECT v FROM p1 WHERE k='open-probe'")
+    var roundtrip bool = false
+    if rows.len() > 0 {
+        var row0 = rows[0]
+        if row0[0] == "seen" {
+            roundtrip = true
+        }
+    }
+    var out str = "{\"journal_mode_rows\":"
+    out = out + json.encode(jm)
+    out = out + ",\"busy_timeout_rows\":"
+    out = out + json.encode(bt)
+    out = out + ",\"create_rows\":"
+    out = out + json.encode(r)
+    out = out + ",\"insert_rows\":"
+    out = out + json.encode(w)
+    out = out + ",\"roundtrip\":"
+    out = out + json.encode(roundtrip)
+    out = out + ",\"last_error\":"
+    out = out + json.encode(sqlite.last_error())
+    out = out + "}"
+    return out
+}
+
+/// 事务 batch：BEGIN IMMEDIATE + INSERT + COMMIT（崩溃安全提交面）
+pub fn txn_probe() str {
+    if probe_guard() == "disabled" {
+        return "disabled"
+    }
+    var path str = probe_db()
+    if path == "" {
+        return "probe_db_required"
+    }
+    var db SqliteDb = sqlite.open(path)
+    db.exec("PRAGMA busy_timeout=3000")
+    db.exec("CREATE TABLE IF NOT EXISTS p2(k TEXT PRIMARY KEY, v TEXT)")
+    db.exec("DELETE FROM p2 WHERE k='txn-probe'")
+    var begin int = db.exec("BEGIN IMMEDIATE")
+    var ins int = db.exec("INSERT INTO p2(k, v) VALUES('txn-probe', 'committed')")
+    var commit int = db.exec("COMMIT")
+    var rows List<List<str>> = db.query("SELECT v FROM p2 WHERE k='txn-probe'")
+    var value str = ""
+    if rows.len() > 0 {
+        var row0 = rows[0]
+        value = row0[0]
+    }
+    var out str = "{\"begin\":"
+    out = out + json.encode(begin)
+    out = out + ",\"insert\":"
+    out = out + json.encode(ins)
+    out = out + ",\"commit\":"
+    out = out + json.encode(commit)
+    out = out + ",\"value\":"
+    out = out + json.encode(value)
+    out = out + "}"
+    return out
+}
+
+/// 双连接写排他：A 连接 BEGIN IMMEDIATE 持锁，B 连接再 BEGIN IMMEDIATE
+/// → 必须 -1（SQLITE_BUSY，second_writer 语义实证）
+pub fn busy_probe() str {
+    if probe_guard() == "disabled" {
+        return "disabled"
+    }
+    var path str = probe_db()
+    if path == "" {
+        return "probe_db_required"
+    }
+    var a SqliteDb = sqlite.open(path)
+    a.exec("PRAGMA busy_timeout=3000")
+    a.exec("CREATE TABLE IF NOT EXISTS p3(k TEXT PRIMARY KEY, v TEXT)")
+    a.exec("DELETE FROM p3 WHERE k='busy'")
+    var ab int = a.exec("BEGIN IMMEDIATE")
+    var b SqliteDb = sqlite.open(path)
+    b.exec("PRAGMA busy_timeout=3000")
+    var bb int = b.exec("BEGIN IMMEDIATE")
+    var lerr str = sqlite.last_error()
+    a.exec("ROLLBACK")
+    var out str = "{\"a_begin\":"
+    out = out + json.encode(ab)
+    out = out + ",\"b_begin\":"
+    out = out + json.encode(bb)
+    out = out + ",\"b_error\":"
+    out = out + json.encode(lerr)
+    out = out + "}"
+    return out
+}
+
+/// 回滚干净：BEGIN + INSERT + ROLLBACK → 行数 0
+pub fn rollback_probe() str {
+    if probe_guard() == "disabled" {
+        return "disabled"
+    }
+    var path str = probe_db()
+    if path == "" {
+        return "probe_db_required"
+    }
+    var db SqliteDb = sqlite.open(path)
+    db.exec("PRAGMA busy_timeout=3000")
+    db.exec("CREATE TABLE IF NOT EXISTS p4(k TEXT PRIMARY KEY, v TEXT)")
+    db.exec("DELETE FROM p4 WHERE k='rollback'")
+    db.exec("BEGIN IMMEDIATE")
+    db.exec("INSERT INTO p4(k, v) VALUES('rollback', 'transient')")
+    db.exec("ROLLBACK")
+    var rows List<List<str>> = db.query("SELECT COUNT(*) FROM p4 WHERE k='rollback'")
+    var rows_after int = 0
+    if rows.len() > 0 {
+        var row0 = rows[0]
+        if row0[0] != "0" {
+            rows_after = 1
+        }
+    }
+    var out str = "{\"rows_after\":"
+    out = out + json.encode(rows_after)
+    out = out + "}"
+    return out
+}
+
+/// '' 转义 + 中文/引号/换行/emoji 往返（SQL 字面量边界）
+pub fn escape_probe() str {
+    if probe_guard() == "disabled" {
+        return "disabled"
+    }
+    var path str = probe_db()
+    if path == "" {
+        return "probe_db_required"
+    }
+    var sample str = "中文\"引号'\n换行 newline\t制表 🎯 end"
+    var lit str = "'" + sample.replace("'", "''") + "'"
+    var db SqliteDb = sqlite.open(path)
+    db.exec("PRAGMA busy_timeout=3000")
+    db.exec("CREATE TABLE IF NOT EXISTS p5(k TEXT PRIMARY KEY, v TEXT)")
+    db.exec("DELETE FROM p5 WHERE k='escape'")
+    var w int = db.exec("INSERT INTO p5(k, v) VALUES('escape', " + lit + ")")
+    var rows List<List<str>> = db.query("SELECT v FROM p5 WHERE k='escape'")
+    var got str = ""
+    if rows.len() > 0 {
+        var row0 = rows[0]
+        got = row0[0]
+    }
+    var roundtrip bool = got == sample
+    var out str = "{\"insert\":"
+    out = out + json.encode(w)
+    out = out + ",\"roundtrip\":"
+    out = out + json.encode(roundtrip)
+    out = out + ",\"len_src\":"
+    out = out + json.encode(sample.len())
+    out = out + ",\"len_got\":"
+    out = out + json.encode(got.len())
+    out = out + "}"
+    return out
+}
