@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-001
-status: drafting
+status: execution_done
 feature_name: durable-todos
 author: [Codex]
 created_at: 2026-10-29
-updated_at: 2026-10-29
+updated_at: 2026-10-29（work 执行轮）
 plan_revision: 2
-current_step: 0
+current_step: 5
 total_steps: 7
 supersedes_spec_components: []
 new_spec_components: [docs/specs/todo/basic-capabilities.md]
@@ -105,11 +105,16 @@ T-02..04按下列任务依赖顺序推进；T-05将本节拟议测试做成真�
 
 ## 8. 执行步骤
 
-- [ ] T-01（owner_stage=work；依赖 无；AC-01..04）：基线与全路径探针：验证当前 Auto 的文件/JSON、失败回执、原子发布或可恢复备份、单写者约束，以及 Vue/VM 调用链；给出数据目录和损坏恢复方案。不得先改内存再把写失败当成功。 输出新文件 `docs/plans/evidence/001/capability-decision.md`，记录可用API、版本/资源边界、缺项owner和最小闭环。
-- [ ] T-02（owner_stage=work；依赖 T-01；AC-01..04）：数据与仓储：新增 src/back/repository.at（拟议）及受版本控制的空库/旧格式 fixture；将 src/back/db.at 改为真实仓储入口，稳定 id 与提交结果一致。
-- [ ] T-03（owner_stage=work；依赖 T-02；AC-01..04）：真实 CRUD 与回执：沿现有 src/back/api.at 完成 CRUD、clear-completed；对不存在 ID、空白输入和写失败返回可区分结果，失败不改已确认数据。
-- [ ] T-04（owner_stage=work；依赖 T-03；AC-01..04）：前端闭环：src/front/todo_store.at / todo_list.at 接真实加载、保存失败与重试；失败时保留待提交文本，不提前清空；不显示演示任务为用户任务。
-- [ ] T-05（owner_stage=work；依赖 T-02..04；AC-01..04）：完成独立数据/失败回放和两端真实UI验收，新建 `tests/basic/verify_basic.py` 调度入口（可复用既有脚本），同时保存命令/输入hash/真实结果与原始失败；准备 canonical Spec 增量，提交实现，转 execution_done。
+- [x] T-01（owner_stage=work；依赖 无；AC-01..04）：基线与全路径探针：验证当前 Auto 的文件/JSON、失败回执、原子发布或可恢复备份、单写者约束，以及 Vue/VM 调用链；给出数据目录和损坏恢复方案。不得先改内存再把写失败当成功。 输出新文件 `docs/plans/evidence/001/capability-decision.md`，记录可用API、版本/资源边界、缺项owner和最小闭环。
+  - [✅ 已完成] 基线与探针完成：内存基线缺口实测（种子/重启丢失/404空体）；应用内 SQLite 探针 open/txn/busy/rollback/escape 全过；选定 SQLite 单文件方案；G-1..G-3 工具链缺口具名登记。证据 [capability-decision.md](evidence/001/capability-decision.md)。
+- [x] T-02（owner_stage=work；依赖 T-01；AC-01..04）：数据与仓储：新增 src/back/repository.at（拟议）及受版本控制的空库/旧格式 fixture；将 src/back/db.at 改为真实仓储入口，稳定 id 与提交结果一致。
+  - [✅ 已完成] repository.at（SQLite WAL，schema_v=1，meta.next_id 单调分配器，VACUUM INTO 备份，quick_check 门禁+标记化恢复）；db.at 类型化门面；fixture tests/basic/fixtures/seed_demo.json。
+- [x] T-03（owner_stage=work；依赖 T-02；AC-01..04）：真实 CRUD 与回执：沿现有 src/back/api.at 完成 CRUD、clear-completed；对不存在 ID、空白输入和写失败返回可区分结果，失败不改已确认数据。
+  - [✅ 已完成] api.at 端点保留原路径，返回 LoadResult/MutationResult 结构化信封；not_found/blank_input/storage_unwritable/second_writer/corrupt/schema_unsupported/fault_injected 全部实测可区分，失败无部分状态。
+- [x] T-04（owner_stage=work；依赖 T-03；AC-01..04）：前端闭环：src/front/todo_store.at / todo_list.at 接真实加载、保存失败与重试；失败时保留待提交文本，不提前清空；不显示演示任务为用户任务。
+  - [✅ 已完成] store load_err/action_err 契约 + 失败横幅/重试 + 编辑态保留；修复 v0.5 导入缺陷（App 本地 input 与 store.input 脱节导致回车创建恒失效，绑定改 store.input + SetInput）。
+- [x] T-05（owner_stage=work；依赖 T-02..04；AC-01..04）：完成独立数据/失败回放和两端真实UI验收，新建 `tests/basic/verify_basic.py` 调度入口（可复用既有脚本），同时保存命令/输入hash/真实结果与原始失败；准备 canonical Spec 增量，提交实现，转 execution_done。
+  - [✅ 已完成] verify_basic.py（--profile vue|vm|--api-only）+ ui_drive.mjs（Playwright/Chromium）+ vm_drive.py（AutoUI MCP）；vue 39/39、vm 33/33 全过；Spec 增量 docs/specs/todo/basic-capabilities.md 待合并固化；证据 [t05-verify-receipt.md](evidence/001/t05-verify-receipt.md)。
 - [ ] T-06（owner_stage=review；依赖 T-05；AC-05）：在同一app检出暂停实现，按冻结提交、真实数据和独立反例最终复审；核对Spec增量与双端结果，说明上下文独立性限制；未满足返回修复，不将数据错误降为债务。
 - [ ] T-07（owner_stage=merge；依赖 T-06；AC-06）：完成实际提交/推送/父仓gitlink验证，沉淀canonical Spec与derived ledger、归档；刷新总表A/B与证据，组合子模块显式detach，独立开发clone留在main。Linux仍等待发行版门，不因文档或脚本存在宣布已可用。
 
@@ -119,6 +124,9 @@ T-02..04按下列任务依赖顺序推进；T-05将本节拟议测试做成真�
 - stage: new | plan_id: TODO-001 | plan_revision: 2 | outcome: pass（独立clone路径修订就绪；功能未实施/未验收） | next: work/T-01（另行执行）。
 - 本次只改工作位置、跨仓链接与AC-06/T-07的检出收尾说明，不变更基础能力要求；独立clone开发，组合子模块只固定已交付版本。
 - 本轮核对源码/Spec缺口、历史任务、路径、基线和计划唯一性；未执行实现/功能测试，所有7项任务保持未勾选；通过的是草案结构/相互引用检查，不是产品验收。
+
+- stage: work | plan_id: TODO-001 | plan_revision: r2 | outcome: pass（execution_done 5/7） | worktree_path: D:/autostack/auto-todo（独立开发clone，本计划唯一写入者） | branch: main | base_commit: 96ea3de2eeba00682cc2580fc29fcac64a557e84 | code_commit: 6d3f3c0（feat(todo): TODO-001 durable todos） | dependency_revisions: auto-man CLI v0.0.20-117-g873fa23（debug）、auto-ui@4adf2d0（auto-ui-tool 本地重建）、auto-lang 工作区 a2r-std（rusqlite bundled 0.30） | task_ids: T-01..T-05 | evidence: docs/plans/evidence/001/capability-decision.md + t05-verify-receipt.md（vue 39/39、vm 33/33；原始日志 local-only attachments/001-t05-verify/） | blockers: 无阻塞性问题；非阻塞登记：`auto` CLI 偶发启动停滞（重试自愈，owner auto-man）、VM 快照 for 行绑定字面显示（行上下文可解析实证，owner auto-lang）、一次未复现的 VM UI 退出观察 | next_responsible_role: review（T-06 最终复审，review_scope=final）
+- work 执行说明（2026-10-29，goal 会话）：SQLite 单文件存储（AUTO_TODO_DATA 覆盖/APPDATA 默认）落地；端点路径不变、结果结构化；修复 v0.5 导入缺陷（App 本地 input 与 store.input 脱节，回车创建恒失效）；备份先于 after_commit 故障返回（commit ⇒ bak 含该提交，恢复零丢失——由 v03 首轮缺口驱动修正）；恢复路径带并发守卫与 .recovering 标记（杜绝静默重建）。复审注意：测试 harness 的进程清理曾泄漏并污染中间轮次结果（v03 假失败/假通过各一次），已用 port→PID 重试杀灭与启动重试自愈；最终轮 vue/vm 均 0 failed。
 
 ## 10. 待澄清事项
 
