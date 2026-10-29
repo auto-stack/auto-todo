@@ -21,8 +21,10 @@
 - 数据根解析：`AUTO_TODO_DATA`（显式覆盖，精确目录）→ `APPDATA` → `XDG_DATA_HOME`
   → `HOME/.local/share` → `.`；解析即兜底建目录。
 - schema v1（`meta.schema_v=1`）：`todos(id INTEGER PRIMARY KEY, text, done)` +
-  `meta(k,v)`（`schema_v`、`next_id`）。未知更高版本 → `schema_unsupported`，
-  绝不静默重建。
+  `meta(k,v)`（`schema_v`、`next_id`）。未知/外来结构（含 `schema_v!=1`）→
+  `schema_unsupported`，打开门禁为纯读校验（sqlite_master 存在性 + 版本行先于
+  WAL/DDL/初始化）：**拒绝且零写入，文件字节不动，绝不静默重建**；v1 既有库
+  打开为零写入快路径。
 - 正常退出与进程硬杀后，已提交任务、`done`、ID 原样恢复；200 条混合任务为
   验收样本（非硬上限）。
 
@@ -40,9 +42,10 @@
     `storage_unwritable`；并发写锁 → `second_writer`（跨进程经 SQLITE_BUSY 实证）。
 - 备份：每次成功提交后 `VACUUM INTO todos.db.bak`（先备份后返回，含
   报告失败的 after-commit 场景）；备份为 best-effort，不回滚已提交数据。
-- 损坏处理（打开门禁：恢复标记 → `quick_check` → DDL → 版本校验）：
-  - 主库损坏 + 备份可用 → 自动恢复（原件字节不动直至备份校验通过；
-    标记文件 `.recovering` 挡住任何静默重建；恢复后复验）。
+- 损坏处理（打开门禁：恢复标记 → `quick_check` → 版本路由 → 仅认可路径写入）：
+  - 主库损坏 + 备份可用 → 自动恢复（先校验备份；标记文件 `.recovering` 挡住
+    任何静默重建；并发守卫在主件已有效时清除标记并放行——**残留标记自愈，
+    不留永久 corrupt**；恢复后复验，随后可正常写入）。
   - 双损坏或无备份 → 读/写一致返回 `corrupt`，**原件哈希不变，不静默播种新库**。
 - 故障注入（仅测试，`AUTO_TODO_FAULT`）：
   - `write_fail`：BEGIN 后回滚，报 `fault_injected`；
