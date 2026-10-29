@@ -1,6 +1,6 @@
 # Spec：todo 基本能力（待办任务持久化与重启恢复）
 
-状态：本文件为 TODO-001（docs/plans/001-durable-todos.md）SD-01/SD-02 的规范增量，
+状态：本文件为 TODO-001（docs/plans/archived/001-durable-todos.md）SD-01/SD-02 的规范增量，
 随实现交付；合并阶段按 merge 技能固化为 canonical。
 
 ## 1. 用户任务与数据模型（SD-01 / AC-01）
