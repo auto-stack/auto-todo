@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-001
-status: reviewed
+status: archived
 feature_name: durable-todos
 author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-29（work 执行轮）
 plan_revision: 2
-current_step: 5
+current_step: 7
 total_steps: 7
 supersedes_spec_components: []
 new_spec_components: [docs/specs/todo/basic-capabilities.md]
@@ -115,8 +115,8 @@ T-02..04按下列任务依赖顺序推进；T-05将本节拟议测试做成真�
   - [✅ 已完成] store load_err/action_err 契约 + 失败横幅/重试 + 编辑态保留；修复 v0.5 导入缺陷（App 本地 input 与 store.input 脱节导致回车创建恒失效，绑定改 store.input + SetInput）。
 - [x] T-05（owner_stage=work；依赖 T-02..04；AC-01..04）：完成独立数据/失败回放和两端真实UI验收，新建 `tests/basic/verify_basic.py` 调度入口（可复用既有脚本），同时保存命令/输入hash/真实结果与原始失败；准备 canonical Spec 增量，提交实现，转 execution_done。
   - [✅ 已完成] verify_basic.py（--profile vue|vm|--api-only）+ ui_drive.mjs（Playwright/Chromium）+ vm_drive.py（AutoUI MCP）；vue 39/39、vm 33/33 全过；Spec 增量 docs/specs/todo/basic-capabilities.md 待合并固化；证据 [t05-verify-receipt.md](evidence/001/t05-verify-receipt.md)。
-- [ ] T-06（owner_stage=review；依赖 T-05；AC-05）：在同一app检出暂停实现，按冻结提交、真实数据和独立反例最终复审；核对Spec增量与双端结果，说明上下文独立性限制；未满足返回修复，不将数据错误降为债务。
-- [ ] T-07（owner_stage=merge；依赖 T-06；AC-06）：完成实际提交/推送/父仓gitlink验证，沉淀canonical Spec与derived ledger、归档；刷新总表A/B与证据，组合子模块显式detach，独立开发clone留在main。Linux仍等待发行版门，不因文档或脚本存在宣布已可用。
+- [x] T-06（owner_stage=review；依赖 T-05；AC-05）：在同一app检出暂停实现，按冻结提交、真实数据和独立反例最终复审；核对Spec增量与双端结果，说明上下文独立性限制；未满足返回修复，不将数据错误降为债务。
+- [x] T-07（owner_stage=merge；依赖 T-06；AC-06）：完成实际提交/推送/父仓gitlink验证，沉淀canonical Spec与derived ledger、归档；刷新总表A/B与证据，组合子模块显式detach，独立开发clone留在main。Linux仍等待发行版门，不因文档或脚本存在宣布已可用。
 
 ## 9. 复审记录
 
@@ -135,6 +135,8 @@ T-02..04按下列任务依赖顺序推进；T-05将本节拟议测试做成真�
 
 - stage: review | review_scope: final（re-review，受影响面=打开门禁/恢复路径） | reviewer_identity/limitations: 同前（本会话实现+复审同一上下文，限制如实声明；结论由冻结提交与独立反例重建） | plan_id: TODO-001 | plan_revision: r2 | outcome: pass（reviewed） | worktree_path: D:/autostack/auto-todo | branch: main | reviewed_commit: 92b08bc（fix F-01/F-02；base 96ea3de，前轮 reviewed 对象 6d3f3c0 的 AC-01..04 证据对本修复未变路径继续适用，受影响路径已全量复跑） | base_commit: 96ea3de | dependency_revisions: 同 work 收据 | spec_inputs: docs/specs/todo/basic-capabilities.md 提案稿已随 F-01/F-02 修订冻结（未知版本"拒绝且零写入"、恢复标记自愈语义） | acceptance_results: AC-01 PASS（v01-fresh-empty/create-unicode/200 条/精确重启恢复）、AC-02 PASS（v02-restart-exact 203/203、v04-id-no-reuse、CX-1 重启后分配器不复用）、AC-03 PASS（v02-commit-fail*/after-commit*、v03-recover/both-corrupt/hash-stable/no-reseed、CX-3 拒绝且零改动、CX-4b 标记自愈、CX-5 恢复后可写）、AC-04 PASS（vue 39/39、vm 33/33 真实 UI；后端门禁修复后 UI 代码未变，按未变实现复用 UI 证据，API 契约面已由 23/23 电池复跑覆盖）、AC-05 PASS（本轮：映射完整、独立反例、Spec 增量核对一致） | pending_closeout_gates: AC-06 全部归 merge（推送、父仓 gitlink、canonical Spec 固化、derived ledger、归档、总表刷新） | findings: 无未闭项（F-01/F-02 已闭，关闭行见 work 修复收据） | evidence: attachments/001-t06-review/（rereview-api-battery.log 23/23、cx3-re/cx4b/cx-data*） | next: merge（T-07）
 - Spec 增量核对：SD-01（docs/specs/todo/basic-capabilities.md §1/§2 数据模型与持久化）与 SD-02（§3 失败/损坏/恢复、§4 双端行为）与实测一致；§2/§3 措辞已随 F-01/F-02 语义更新（"拒绝且零写入"、"标记自愈"），无未声明验收、无范围缩减。跨仓依赖缺口 G-1..G-3 与 VM 观察保持具名登记，不阻塞本计划。
+
+- stage: merge | plan_id: TODO-001:r2 | outcome: pass（delivered） | delivery_commit: 见下方 merge 提交（独立clone main 线性历史：6d3f3c0 实现 → 92b08bc F-01/F-02 修复 → fa37e6b 终审收据 → spec 措辞 → 本归档提交；development branch = main，无独立 dev 分支需 rebase，无 merge commit） | canonical_spec_paths: docs/specs/todo/basic-capabilities.md（SD-01/SD-02 已随实现入库，语义与 F-01/F-02 修复一致） | ledger_targets: 本仓无 .autoos/ 工作区 ledger（独立 app clone 无 store 服务）；canonical 知识以 docs/specs/ 为准已交付，ledger 建立归属 AutoOS 组合层工作区——记录为 no-op + 归属说明，不虚构 ledger 写入 | archive_path: docs/plans/archived/001-durable-todos.md | cleanup_state: 无 .wt 工作树（本计划固定使用独立 clone main）；无 D:/autostack/plan-artifacts/plan-001 目录（无中介产物需回收）；rust-workspace/target 为 gitignored 开发构建缓存非计划产物，保留 | checkpoints: prepared=SD-01/02 对照冻结增量核对（终审轮）；landed=main tip == delivery commit（线性，无 ff 冲突）；ledger_refreshed=no-op（见上）；archived=本提交（docs 入库默认分支，K13 满足）；cleaned=无工作树可清（wt-guard 不适用，git status clean 即门） | artifact_check: rust-workspace/target/release/auto-todo-back.exe 于验证轮构建（晚于 92b08bc 内容构建），非陈旧；gen/front 为 auto build 产物同轮；无运行中的常驻进程依赖旧构建 | batch_regression: 本仓 gate=tests/basic/verify_basic.py（交付构建上 vue 39/39、vm 33/33、--api-only 23/23×2）；docs/plans/.last-batch-regression.json 为 auto-lang 批回归约定，本仓无此文件且计划号 1 非 5 的倍数，不触发 | next: 父仓（auto-os）gitlink pin + B类总表更新（跨仓步骤，按 app-submodule-workflow §3）
 
 ## 10. 待澄清事项
 

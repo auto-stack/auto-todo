@@ -42,7 +42,7 @@ AutoOS 通过 [`apps/013-todo`](https://github.com/auto-stack/auto-os/tree/v0.6-
 
 ## 基本能力补齐计划（2026-10-29）
 
-[TODO-001：待办任务持久化与重启恢复](docs/plans/001-durable-todos.md) 为本app的基础能力执行合同，已实施并通过双端验证（见其 §9 执行记录与 [能力决策](docs/plans/evidence/001/capability-decision.md)）。
+[TODO-001：待办任务持久化与重启恢复](docs/plans/archived/001-durable-todos.md) 为本app的基础能力执行合同，已实施并通过双端验证（见其 §9 执行记录与 [能力决策](docs/plans/evidence/001/capability-decision.md)）。
 总状态与前置见 [AutoOS B类总跟踪表](https://github.com/auto-stack/auto-os/blob/main/docs/plans/b-apps-basic-capabilities.md)。基础能力通过后再考虑Linux；A类统一等待 auto-os-distro 完成 Nix＋COSMIC 基础，后续增强另会话。
 
 开发使用独立 clone `D:/autostack/auto-todo` 的 main；AutoOS 内对应子模块仅固定已交付提交，流程见 [App开发与子模块](https://github.com/auto-stack/auto-os/blob/main/docs/design/strategy/app-submodule-workflow.md)。
