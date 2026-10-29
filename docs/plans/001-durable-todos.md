@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-001
-status: execution_done
+status: executing
 feature_name: durable-todos
 author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-29（work 执行轮）
 plan_revision: 2
-current_step: 5
+current_step: 4
 total_steps: 7
 supersedes_spec_components: []
 new_spec_components: [docs/specs/todo/basic-capabilities.md]
@@ -107,8 +107,8 @@ T-02..04按下列任务依赖顺序推进；T-05将本节拟议测试做成真�
 
 - [x] T-01（owner_stage=work；依赖 无；AC-01..04）：基线与全路径探针：验证当前 Auto 的文件/JSON、失败回执、原子发布或可恢复备份、单写者约束，以及 Vue/VM 调用链；给出数据目录和损坏恢复方案。不得先改内存再把写失败当成功。 输出新文件 `docs/plans/evidence/001/capability-decision.md`，记录可用API、版本/资源边界、缺项owner和最小闭环。
   - [✅ 已完成] 基线与探针完成：内存基线缺口实测（种子/重启丢失/404空体）；应用内 SQLite 探针 open/txn/busy/rollback/escape 全过；选定 SQLite 单文件方案；G-1..G-3 工具链缺口具名登记。证据 [capability-decision.md](evidence/001/capability-decision.md)。
-- [x] T-02（owner_stage=work；依赖 T-01；AC-01..04）：数据与仓储：新增 src/back/repository.at（拟议）及受版本控制的空库/旧格式 fixture；将 src/back/db.at 改为真实仓储入口，稳定 id 与提交结果一致。
-  - [✅ 已完成] repository.at（SQLite WAL，schema_v=1，meta.next_id 单调分配器，VACUUM INTO 备份，quick_check 门禁+标记化恢复）；db.at 类型化门面；fixture tests/basic/fixtures/seed_demo.json。
+- [ ] T-02（owner_stage=work；依赖 T-01；AC-01..04）：数据与仓储：新增 src/back/repository.at（拟议）及受版本控制的空库/旧格式 fixture；将 src/back/db.at 改为真实仓储入口，稳定 id 与提交结果一致。
+  - [✅ 已完成→复审重开 F-01/F-02] repository.at（SQLite WAL，schema_v=1，meta.next_id 单调分配器，VACUUM INTO 备份，quick_check 门禁+标记化恢复）；db.at 类型化门面；fixture tests/basic/fixtures/seed_demo.json。r2 终审反例：恢复标记守卫分支未清标记（永久 corrupt）与未知 schema 版本 DDL 先于校验（外部库文件被改）——修复见下轮 work。
 - [x] T-03（owner_stage=work；依赖 T-02；AC-01..04）：真实 CRUD 与回执：沿现有 src/back/api.at 完成 CRUD、clear-completed；对不存在 ID、空白输入和写失败返回可区分结果，失败不改已确认数据。
   - [✅ 已完成] api.at 端点保留原路径，返回 LoadResult/MutationResult 结构化信封；not_found/blank_input/storage_unwritable/second_writer/corrupt/schema_unsupported/fault_injected 全部实测可区分，失败无部分状态。
 - [x] T-04（owner_stage=work；依赖 T-03；AC-01..04）：前端闭环：src/front/todo_store.at / todo_list.at 接真实加载、保存失败与重试；失败时保留待提交文本，不提前清空；不显示演示任务为用户任务。
@@ -127,6 +127,8 @@ T-02..04按下列任务依赖顺序推进；T-05将本节拟议测试做成真�
 
 - stage: work | plan_id: TODO-001 | plan_revision: r2 | outcome: pass（execution_done 5/7） | worktree_path: D:/autostack/auto-todo（独立开发clone，本计划唯一写入者） | branch: main | base_commit: 96ea3de2eeba00682cc2580fc29fcac64a557e84 | code_commit: 6d3f3c0（feat(todo): TODO-001 durable todos） | dependency_revisions: auto-man CLI v0.0.20-117-g873fa23（debug）、auto-ui@4adf2d0（auto-ui-tool 本地重建）、auto-lang 工作区 a2r-std（rusqlite bundled 0.30） | task_ids: T-01..T-05 | evidence: docs/plans/evidence/001/capability-decision.md + t05-verify-receipt.md（vue 39/39、vm 33/33；原始日志 local-only attachments/001-t05-verify/） | blockers: 无阻塞性问题；非阻塞登记：`auto` CLI 偶发启动停滞（重试自愈，owner auto-man）、VM 快照 for 行绑定字面显示（行上下文可解析实证，owner auto-lang）、一次未复现的 VM UI 退出观察 | next_responsible_role: review（T-06 最终复审，review_scope=final）
 - work 执行说明（2026-10-29，goal 会话）：SQLite 单文件存储（AUTO_TODO_DATA 覆盖/APPDATA 默认）落地；端点路径不变、结果结构化；修复 v0.5 导入缺陷（App 本地 input 与 store.input 脱节，回车创建恒失效）；备份先于 after_commit 故障返回（commit ⇒ bak 含该提交，恢复零丢失——由 v03 首轮缺口驱动修正）；恢复路径带并发守卫与 .recovering 标记（杜绝静默重建）。复审注意：测试 harness 的进程清理曾泄漏并污染中间轮次结果（v03 假失败/假通过各一次），已用 port→PID 重试杀灭与启动重试自愈；最终轮 vue/vm 均 0 failed。
+
+- stage: review | review_scope: final | reviewer_identity/limitations: 本会话即实现会话，无独立上下文（按 Plan §6 声明限制；结论从冻结提交与独立反例重建，不依赖执行者摘要） | plan_id: TODO-001 | plan_revision: r2 | outcome: needs_fix（F-01/F-02，均属仓储打开门禁） | worktree_path: D:/autostack/auto-todo | branch: main | reviewed_commit: 6d3f3c0（HEAD e2cecaf 仅 docs；src/tests 与被测构建一致——git diff 6d3f3c0..HEAD -- src/ tests/ 为空） | base_commit: 96ea3de | dependency_revisions: 同 work 收据 | spec_inputs: docs/specs/todo/basic-capabilities.md（提案稿，随 F-01/F-02 修订后冻结） | acceptance_results: AC-01..04 独立复跑 --api-only 23/23 PASS（attachments/001-t06-review/review-api-battery.log）；独立反例 CX-1 删最大ID后重启新建不复用 PASS、CX-2 四字节emoji创建/更新往返 PASS、CX-5 恢复后可写 PASS、CX-3 schema_v=2 拒绝 PASS 但**文件被改动**、CX-4 残留 .recovering 标记**永不自愈** | pending_closeout_gates: AC-06 归 merge（推送/父仓gitlink/canonical/ledger/归档） | findings: F-01（cx4：try_recover 并发守卫分支清标记缺失→标记+有效主件/备份=永久 corrupt，数据在但应用不可用，violates 自愈设计；fix=守卫分支清标记）；F-02（cx3：ensure_schema 先 DDL 后读 schema_v → 未知版本库文件被 CREATE TABLE 改写（hash 变化），violates 未知版本"拒绝且不动原件"；fix=先经 sqlite_master 判 meta 存在性并校验 sv，通过后才 DDL） | evidence: attachments/001-t06-review/（cx-data/、review-api-battery.log、cx*.log，local-only） | next: work 修复 F-01/F-02（同树），重开 T-02；修复后按受影响面复验（ensure_schema 为全路径共享门 → 重跑 API 全量电池 + CX-3/CX-4），再终审
 
 ## 10. 待澄清事项
 
