@@ -166,8 +166,9 @@ fn verify_db_file(path str) str {
     return ""
 }
 
-/// 打开门禁（读/写共用）：恢复标记 → quick_check → DDL → schema_v 校验。
-/// 返回 ""；失败码：storage_unwritable | corrupt | schema_unsupported。
+/// 打开门禁（读/写共用）：恢复标记 → quick_check → 版本路由 → （仅认可路径）
+/// WAL/DDL/初始化。返回 ""；失败码：storage_unwritable | corrupt | schema_unsupported。
+/// 版本校验先于任何写（含 WAL 头与 DDL）：未知/外来结构拒绝且原件字节不动。
 fn ensure_schema() str {
     // 恢复进行中/失败残留：绝不静默重建空库覆盖（AC-03）
     if fs.exists(db_path() + ".recovering") {
@@ -175,11 +176,11 @@ fn ensure_schema() str {
     }
     var db SqliteDb = sqlite.open(db_path())
     db.exec("PRAGMA busy_timeout=3000")
-    db.exec("PRAGMA journal_mode=WAL")
     if fs.exists(db_path()) == false {
+        // sqlite.open 失败静默回退内存库——真实文件未建立即不可用
         return "storage_unwritable"
     }
-    // 损坏检测先于任何 DDL：绝不给损坏文件建表（原件保持不变）
+    // 损坏检测先于一切写：损坏文件原样保留（交恢复路径处置）
     var rows List<List<str>> = db.query("PRAGMA quick_check")
     if rows.len() < 1 {
         return "corrupt"
@@ -188,37 +189,69 @@ fn ensure_schema() str {
     if row0[0] != "ok" {
         return "corrupt"
     }
-    db.exec("CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL)")
-    db.exec("CREATE TABLE IF NOT EXISTS todos(id INTEGER PRIMARY KEY, text TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0)")
-    var sv str = meta_get_on(db, "schema_v")
-    if sv == "" {
-        var cnt_rows List<List<str>> = db.query("SELECT COUNT(*) FROM todos")
-        var empty bool = true
-        if cnt_rows.len() > 0 {
-            var c = cnt_rows[0]
-            if parse_int(c[0]) > 0 {
-                empty = false
-            }
-        }
-        if empty {
-            // 全新库：版本与分配器初始化（空库 = 0 任务，无种子）
-            var w1 int = db.exec("INSERT INTO meta(k, v) VALUES('schema_v', '1')")
-            var w2 int = db.exec("INSERT INTO meta(k, v) VALUES('next_id', '1')")
-            if w1 < 0 {
-                return "storage_unwritable"
-            }
-            if w2 < 0 {
-                return "storage_unwritable"
+    // 版本路由（纯读）：meta/todos 存在性与 schema_v 决定路径
+    var have_meta bool = table_exists(db, "meta")
+    var have_todos bool = table_exists(db, "todos")
+    var sv str = ""
+    if have_meta {
+        sv = meta_get_on(db, "schema_v")
+        if sv != "" {
+            if sv != "1" {
+                // 未知版本：拒绝，绝不写入（WAL/DDL 都可能改文件）
+                return "schema_unsupported"
             }
         } else {
-            return "schema_unsupported"
+            // meta 在而无版本行：仅 v1 初始化中断（todos 已建且为空）可补齐；
+            // 其余一律外来结构，拒绝
+            if have_todos == false {
+                return "schema_unsupported"
+            }
+            var cnt_rows List<List<str>> = db.query("SELECT COUNT(*) FROM todos")
+            if cnt_rows.len() > 0 {
+                var c = cnt_rows[0]
+                if parse_int(c[0]) > 0 {
+                    return "schema_unsupported"
+                }
+            }
         }
     } else {
-        if sv != "1" {
+        if have_todos {
+            // 无 meta 而有 todos：外来结构，拒绝
             return "schema_unsupported"
         }
     }
+    // ── 以下为认可路径（v1 既有库 = 零写入快路径；全新/中断库 = 补齐）──
+    db.exec("PRAGMA journal_mode=WAL")
+    if have_meta == false {
+        db.exec("CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+    }
+    if have_todos == false {
+        db.exec("CREATE TABLE IF NOT EXISTS todos(id INTEGER PRIMARY KEY, text TEXT NOT NULL, done INTEGER NOT NULL DEFAULT 0)")
+    }
+    if sv == "" {
+        // 全新库或 v1 初始化中断：版本与分配器初始化（空库 = 0 任务，无种子）
+        var w1 int = db.exec("INSERT OR IGNORE INTO meta(k, v) VALUES('schema_v', '1')")
+        var w2 int = db.exec("INSERT OR IGNORE INTO meta(k, v) VALUES('next_id', '1')")
+        if w1 < 0 {
+            return "storage_unwritable"
+        }
+        if w2 < 0 {
+            return "storage_unwritable"
+        }
+    }
     return ""
+}
+
+/// sqlite_master 纯读存在性检查（对外来库零写入）
+fn table_exists(db SqliteDb, name str) bool {
+    var rows List<List<str>> = db.query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=" + sql_str(name))
+    if rows.len() > 0 {
+        var row0 = rows[0]
+        if parse_int(row0[0]) > 0 {
+            return true
+        }
+    }
+    return false
 }
 
 /// 变更/读取共用入口。corrupt 时尝试一次备份恢复（AC-03/V-03）。
@@ -251,9 +284,14 @@ fn try_recover() str {
     if verify_db_file(bp) != "" {
         return "corrupt"
     }
-    // 并发守卫：验证 bak 期间他方可能已完成恢复——主件已有效则直接放行
-    if verify_db_file(mp) == "" {
-        return ""
+    // 并发守卫：验证 bak 期间他方可能已完成恢复——主件真实存在且已有效
+    // 则清标记放行（标记由完成者或本路径清除，绝不残留成永久 corrupt）。
+    // fs.exists 先于 verify_db_file：后者对缺失路径会经 sqlite.open 建空文件。
+    if fs.exists(mp) {
+        if verify_db_file(mp) == "" {
+            fs_delete(mp + ".recovering")
+            return ""
+        }
     }
     fs.write_text(mp + ".recovering", "1")
     fs_delete(mp + "-wal")
