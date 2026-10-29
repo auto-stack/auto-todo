@@ -23,3 +23,4 @@ docs/plans/attachments/**
 # transpiler scratch outputs (local)
 *.a2r.rs
 *.a2r.rs.assembly.json
+.auto/
