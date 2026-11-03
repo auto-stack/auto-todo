@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-002
-status: execution_done
+status: executing
 feature_name: "独立启动、进程隔离与双端回归"
 author: [Codex]
 created_at: 2026-11-01
-updated_at: 2026-11-03（work 执行轮）
+updated_at: 2026-11-03（review 轮 needs_fix）
 plan_revision: 1
-current_step: 5
+current_step: 1
 total_steps: 7
 base_branch: main
 base_commit: a34e4550d352c2f93247c58c891e1822daac8799
@@ -94,14 +94,14 @@ T-00新增 `docs/plans/evidence/002/standalone-decision.md` 固定CLI/tool、启
 
 - [x] T-00（owner_stage=work；依赖001；AC-01）：核实准备/清理调用路径，输出决策稿；先规避旧广域终止逻辑再运行隔离探针。
   - [✅ 已完成] 真实进程树实证：`auto service` → shim → cargo run → `auto-todo-<hash>-back.exe`（auto-lang target/generated-consumers，**带 hash 后缀，旧 kill_stale_backends 名称过滤匹配数为 0**）；`taskkill /T` 于属根 4/4 全树终止、端口释放。决策稿冻结（工具身份/冷准备阶段/端口与数据根/清理调用图/失败预算），路径按 2026-10-31 evidence ruling 落 scratch home `D:/autostack/plan-artifacts/plan-002/todo-002/standalone-decision.md`（§5 原定 docs/plans/evidence/002/ 不入仓，耐久摘要在本文件 §8/§9）。
-- [x] T-01（owner_stage=work；依赖T-00；AC-01/03）：在既有调度器收口自有PID/子树清理和冷准备、端口失败，验证旁观实例不受影响。
-  - [✅ 已完成] verify_basic.py 清理层重写：删除 kill_stale_backends/kill_port；新增 spawn 树记录/游走/收割（taskkill /T 属根 + 被观测后端叶）、端口纯观测化、端口冲突受控失败（不重扫不代杀）、`--cold-prep`（清自有 gitignored gen//rust-workspace//.auto，有实例在跑即拒绝）、启动停滞仅收割自有树后重试一次。
-- [x] T-02（owner_stage=work；依赖T-01；AC-02/03）：复用旧门落地TD-01..04与真实双端回归；只修实际复现缺口。
-  - [✅ 已完成] 冻结字节最终回归：`--api-only` 47/47、`--profile vue` 74/74、`--profile vm` 69/69、`--profile vm --cold-prep` 69/69，全部退出码 0、零重试（vue cold-prep 于冷路径未变的前一修订 74/74 通过，teardown 修复面由冻结字节三连复验覆盖）。TD-03 强杀重开后真实 UI 再编辑双端打通：vue 经 Playwright（元素句柄修复 value 失配）、vm 经 AutoUI MCP（键盘 Enter 焦点路由实测不触发编辑行 onenter → 改按行内真实 ✓ 提交按钮，handler 回执 .TodoList.CommitEdit）；独立 SQLite 复核 td03-reedit-storage 双端 PASS。修复轮证据链（api r1 → vue r1/r2 → vm r1..r6 → final 三连 → vm cold）见 logs/ 存档。
-- [x] T-03（owner_stage=work；依赖T-02；AC-03）：证明失败控制敏感性和恢复后下一次写入，整理SD候选。
-  - [✅ 已完成] 门内常驻：坏 schema（schema_v=2）读写一致拒绝且零写入（字节+无标记）→ 换 v1 库后下一次写入成功；备份恢复后下一次写入成功；after-commit 报告失败/持久语义不变 + 故障解除后下一次写入成功；坏工具负控总门非零（exit 2）；旁观实例（service 形状 oracle + vm 窗口形状运行证据）与无关端口监听者全程存活、库字节不变、数据可读。SD-01/SD-02 候选落地 docs/specs/todo/basic-capabilities.md §5 与 docs/specs/todo/standalone-runtime.md（提案稿，随 merge 固化）。
-- [x] T-04（owner_stage=work；依赖T-03；AC-01..03）：更新运行说明、核对漂移/覆盖，提交execution_done。
-  - [✅ 已完成] README 更新（交付基线、新验证入口含 --cold-prep、进程与端口边界节、已交付计划节）；漂移核对：业务源码零改动（src/** 未触碰，§4 冻结基线中 src/back/repository.at、src/front/todo_store.at SHA256 不变），改动面仅 tests/basic 三文件 + docs/specs 两文件 + README；T-00..T-04 全部完成，提交 execution_done。
+- [ ] T-01（owner_stage=work；依赖T-00；AC-01/03）：在既有调度器收口自有PID/子树清理和冷准备、端口失败，验证旁观实例不受影响。【review F-03 重开：OS 保留端口段抽签失败】
+  - [✅ 已完成→复验中] 清理层重写已交付并过终审静态审计（taskkill 仅 tree_kill/kill_observed_backend 两处、全 spawn 树授权）。重开项见 §9 review F-03。
+- [ ] T-02（owner_stage=work；依赖T-01；AC-02/03）：复用旧门落地TD-01..04与真实双端回归；只修实际复现缺口。【review F-02 重开：外来库静默收编（repository.at）】
+  - [✅ 已完成→复验中] 冻结字节最终回归 api 47/47、vue 74/74、vm 69/69、vm cold 69/69 全过；重开项见 §9 review F-02。
+- [ ] T-03（owner_stage=work；依赖T-02；AC-03）：证明失败控制敏感性和恢复后下一次写入，整理SD候选。【review F-02 重开：新增外来结构永久门】
+  - [✅ 已完成→复验中] 故障注入敏感性/恢复续写/负控已在门内常驻；SD 候选已落 docs/specs。重开项见 §9 review F-02。
+- [ ] T-04（owner_stage=work；依赖T-03；AC-01..03）：更新运行说明、核对漂移/覆盖，提交execution_done。【review F-01 重开：预算文案与实现对齐】
+  - [✅ 已完成→复验中] README/Spec §5 已交付；重开项见 §9 review F-01/F-03 文档对齐。
 - [ ] T-05（owner_stage=review；依赖T-04；AC-04）：同clone独立上下文最终复审。
 - [ ] T-06（owner_stage=merge；依赖T-05 pass；AC-05）：仅本app规范/归档/提交push收尾。
 
@@ -112,6 +112,13 @@ T-00新增 `docs/plans/evidence/002/standalone-decision.md` 固定CLI/tool、启
 
 - stage: work | plan_id: TODO-002 | plan_revision: r1 | outcome: pass（execution_done 5/7） | worktree_path: D:/autostack/auto-todo（独立开发clone，本计划唯一写入者） | branch: main | base_commit: a34e4550d352c2f93247c58c891e1822daac8799 | code_commit: 见本次实现提交（feat(test): TODO-002 standalone isolation gate） | dependency_revisions: auto CLI 0.1.0+plan-890-verified-r7-t19-14-g47d8f7b（sha256 6f1925ea0e9fa0…，141,047,296B）、auto-ui-tool 0.1.0（sha256 4d2198b8…，PATH 发现 D:/autostack/auto-man/target/debug/auto-ui-tool.EXE）、node v25.2.1、playwright（npx 缓存 420ff84f11983ee5）、后端镜像 D:/autostack/auto-lang/target/generated-consumers/f3f98a9e/debug/auto-todo-57df9a6e-back.exe（名称带内容 hash） | task_ids: T-00..T-04 | evidence: 决策稿 D:/autostack/plan-artifacts/plan-002/todo-002/standalone-decision.md（含 §8 实施期修订）＋ logs/ 15 份原始运行日志；冻结字节（HEAD 8a65e08+工作树）最终回归 --api-only 47/47、vue 74/74、vm 69/69、vm --cold-prep 69/69，退出码全 0、零重试；冷就绪实测 248.4s（≤600s 预算）；验收映射 AC-01=td01-*/td02-*（身份/数据根/冷准备/冲突受控失败/旁观隔离）、AC-02=既有 v01/v02/v04 全套＋td03（双端真实 UI 强杀重开再编辑+独立库复核）、AC-03=v03 全套＋td04-*（schema 零写入/故障解除续写/负控非零/清理完整性） | blockers: 无 | 非阻塞登记：①VM UI 旁观实例一次间歇退出（r3；库字节不变、门无命中它的终止操作，沿 001 已登记观察，旁观 oracle 已确定性改为 service 形状）②键盘 Enter 路由到焦点 input 声明（vm 编辑行 onenter 不触发；再编辑改用行内真实 ✓ 按钮，真实 UI 输入链保持）③CLI 初始化停滞两次（api service 与 vm UI 重启各一次，既有重试一次自愈，无跨运行杀戮）④plan-002 scratch 根下另有他仓 DATABASE-002 产物，本计划证据隔离在 todo-002/ 子目录，互不触碰 | next_responsible_role: review（T-05 最终复审，review_scope=final，同 clone 独立上下文；复审时暂停实现写入）
 - stage: goal | plan_id: TODO-002 | plan_revision: r1 | round: 1 | from: drafting | to: work | status: execution_done | outcome: pass | worktree: D:/autostack/auto-todo | commit: b2734c3（实现）+ 5ae5f89（计划进度） | next: review
+- stage: review | review_scope: final | reviewer_identity/limitations: 本会话即实现会话，无独立上下文（如实声明；结论从冻结提交与复审者自有反例重建，不依赖执行者摘要——沿用 001 终审同规约） | plan_id: TODO-002 | plan_revision: r1 | outcome: needs_fix（F-01/F-02/F-03） | worktree_path: D:/autostack/auto-todo（独立开发clone） | branch: main | reviewed_commit: b2734c3（HEAD 02d1742 仅 docs/plans；工作树 clean，被测字节与提交一致） | base_commit: a34e455 | dependency_revisions: 同 work 收据 | spec_inputs: docs/specs/todo/standalone-runtime.md（提案稿）＋ basic-capabilities.md §5（提案稿）＋ 001 canonical §2/§3 | acceptance_results: AC-01 partial（隔离/清理 oracle 在无并发实例时全过且静态审计干净；F-03 并发/端口抽签场景失败）、AC-02 partial（既有数据语义全套过；td03 双端真实 UI 再编辑过；F-02 外来结构类未覆盖）、AC-03 partial（故障/schema2/负控过；F-02 为 in-contract 缺陷）、AC-04=本轮 | pending_closeout_gates: AC-05 归 merge | findings: 见下方三条 finding 包 | evidence: 复审自有探针 cx3-review.log（vm 窗口旁观全门存活 ✓、APPDATA 默认库零接触 ✓、但门内 service 旁观者启动失败）、cx4_schema_probe.py（v99 拒绝零写 ✓ / no-meta 外来库被收编 ✗）、cx5-gate.log（并发场景 "拒绝访问 os error 5" bind 失败复现）、静态审计（taskkill 仅两处 spawn 树授权；日志 summary 47/74/69 与声称一致） | next: work 修复 F-01/F-02/F-03（同树），重开 T-01..T-04；修复后受影响面=打开门禁/端口分配/文档 → 全量 API 电池 + CX 复放（schema2/v99/nometa-foreign/并发）+ UI 证据按未变实现复用裁定，再终审
+
+**复审 finding 包（2026-11-03）**
+
+- **F-02（高，in-contract 产品缺陷，001 遗留缺口由本轮反例暴露；违反规则=basic-capabilities.md §2「未知/外来结构…拒绝且零写入，文件字节不动，绝不静默重建」＋standalone-runtime.md §3）**：无 meta 且无 todos、但含其他用户表的合法 SQLite 库（如 `widget` 表）被静默收编为全新 todo 库。复放：`python D:/autostack/plan-artifacts/plan-002/todo-002/cx4_schema_probe.py`（case nometa）——实测 read=ok:true 空列表、write 成功 id=1、开库即改字节、meta/todos 建在 widget 旁（widget 数据保留但文件被污染、被冒充为空库）。根因（已定位）：`src/back/repository.at` ensure_schema 版本路由 `have_meta==false` 分支只在 `have_todos` 时拒绝，否则直接落入认可路径全新初始化，未校验库内是否存在其他用户表。关闭 oracle：repository.at 修复（no-meta/no-todos 落入初始化前，库内存在任何表 → `schema_unsupported` 纯读拒绝；真空库初始化保持不变）＋门内永久用例 td04-schema-foreign（widget-only 库 → 读写一致拒绝、字节/标记不变、widget 完好；换回 v1 库后下一次写入成功）。受影响面：ensure_schema 为全路径共享门 → 全量 API 电池复跑 + CX 复放（schema2/v99/nometa/both-corrupt）；UI 双端证据按未变实现复用裁定（001 终审同规约）。
+- **F-03（中，AC-01 可复验性缺陷，harness 层）**：端口分配仅 `free_port()` 抽签，未做可用性预校验；OS 动态保留端口段（Hyper-V/WinNAT，netsh excludedportrange 随时间轮转）使命中段位的 bind 被系统拒绝（backend exit 101「拒绝访问 os error 5」，端口无属主），门以一般性 not-ready 失败——终审并发场景复现 2/2（cx3/cx5：与一个存活实例并存时 service-ready 与 td02-bystander-ready 双双失败），而单跑三连 0/3 未命中＝环境抽签，破坏「两profile独立准备/启动可复验」。关闭 oracle：端口分配改为「随机候选 → 属主检查（有属主=服务冲突，受控失败不重扫）→ harness 试绑定（无属主但被拒=OS 保留段，换下一候选，有界次数并记录）」，替换全部 start 位点；standalone-runtime.md §1 端口条款同步写明三分类（服务占用/OS 保留/可用）；修复后在「一个存活实例并存」场景整门复跑通过。
+- **F-01（低，文档合同漂移）**：standalone-runtime.md §1 写「冷首启就绪预算 ≤600s…暖启动 ≤240s」，实现为所有 service 就绪判定统一 ≤600s/attempt、UI `auto run` ≤900s/attempt（决策稿 §5 旧冻结值 UI≤600s 与实现 900s 亦不一致）。修复：候选 canonical 文案对齐实现（service ≤600s/attempt、UI ≤900s/attempt、UI 停滞收割自有树后至多重试一次），决策稿 §8 补记最终预算；无需改码。
 
 ## 10. 待澄清事项
 
