@@ -4,6 +4,7 @@
 // 用法: node ui_drive.mjs <front-url> <mode>
 //   mode = full      ：创建/勾选/编辑/删除/刷新持久/清已完成 全流程
 //   mode = readonly  ：只读检查列表渲染（vm profile 兜底面）
+//   mode = reedit    ：重启后再编辑（TD-03）：对锚点任务真实 UI 改名并验证
 // 输出：逐行 `PASS|FAIL: <step>`；末行 `SUMMARY {json}`；退出码 0/1。
 
 // playwright 模块解析：优先本仓 node_modules，其次 PLAYWRIGHT_MODULE 环境变量
@@ -64,6 +65,39 @@ try {
 
   // 行定位器：任务行 = 含任务文本的 flex 行（checkbox + 文本 + × 同行）
   const rowOf = (text) => page.locator('div.flex.items-center.py-3').filter({ hasText: text });
+
+  if (mode === 'reedit') {
+    // TD-03: 强杀重开后的真实 UI 再编辑。前置（调度方保证）：列表恰含锚点任务。
+    // 注意：fill 会改变 input 的 value，旧 value*= 定位器会失配——元素句柄只解析一次。
+    const anchor = '重启持久锚点-anchor';
+    try {
+      body = await page.locator('body').innerText();
+      record('reedit-anchor-rendered', body.includes(anchor), 'anchor task visible after restart');
+      const row = rowOf(anchor);
+      if ((await row.count()) === 1) {
+        await row.getByText(anchor).first().click();
+        const editBox = page.locator(`input[value*="${anchor}"]`).first();
+        const appeared = await editBox.waitFor({ state: 'visible', timeout: 8000 })
+          .then(() => true).catch(() => false);
+        record('reedit-input-appeared', appeared, appeared ? '' : 'edit input not reached');
+        if (appeared) {
+          const box = await editBox.elementHandle();
+          await box.fill('重开再编辑-OK');
+          await box.press('Enter');
+          await page.waitForTimeout(800);
+        }
+      } else {
+        record('reedit-anchor-row', false, 'anchor row count=' + (await row.count()));
+      }
+      body = await page.locator('body').innerText();
+      record('reedit-done', body.includes('重开再编辑-OK') && !body.includes(anchor),
+             'anchor renamed via real UI after hard-kill restart');
+    } catch (e) {
+      record('reedit-crash', false, String(e).slice(0, 200));
+    }
+    console.log('SUMMARY ' + JSON.stringify({ results, pageErrors }));
+    process.exit(results.every((r) => r.ok) ? 0 : 1);
+  }
 
   // 2. 输入 + 回车创建（真实键盘事件）
   const text1 = 'UI验收-中文"引号"';

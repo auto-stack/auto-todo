@@ -2,7 +2,10 @@
 
 待办，使用 AutoLang / AutoUI 开发的独立应用。
 
-更新：2026-11-01。001已交付归档/r2、7/7；真实CRUD、稳定ID、SQLite恢复，原Vue39/39、VM33/33为冻结记录。 本轮未重跑产品验收。
+更新：2026-11-03。001已交付归档/r2、7/7（真实CRUD、稳定ID、SQLite恢复）。
+002（独立启动、进程隔离与双端回归）已实施交付：验证入口只按 spawn 树清理本次进程
+（不再按端口/命令行/进程名杀任何进程），补独立冷准备与真实双端重开后再编辑回归。
+本轮交付基线：`--api-only` 47/47、`--profile vue` 74/74、`--profile vm` 69/69（退出码 0）。
 
 ## 运行
 
@@ -20,17 +23,25 @@ auto run -r vm
 每次成功变更后写 `todos.db.bak` 快照，主库损坏时自动从备份恢复，双损坏时明确
 报错且原件不动。测试故障注入：`AUTO_TODO_FAULT=write_fail|commit_fail|after_commit_fail`。
 
-## 基本能力验证（TODO-001）
+## 基本能力验证（TODO-001/002）
 
 ```sh
-python tests/basic/verify_basic.py --profile vue   # API 全量 + Vue 真实 UI（Playwright）
-python tests/basic/verify_basic.py --profile vm    # API 全量 + VM 真实 UI（AutoUI MCP）
-python tests/basic/verify_basic.py --api-only      # 仅 API/存储/恢复/故障注入电池
+python tests/basic/verify_basic.py --profile vue   # API 全量 + 隔离电池 + Vue 真实 UI（Playwright）
+python tests/basic/verify_basic.py --profile vm    # API 全量 + 隔离电池 + VM 真实 UI（AutoUI MCP）
+python tests/basic/verify_basic.py --api-only      # 仅 API/存储/恢复/故障/schema/隔离/负控电池
+python tests/basic/verify_basic.py --profile vue --cold-prep   # TD-01：清本仓自有生成物后冷首启
 ```
 
 前置：`auto` CLI（默认 `D:/autostack/auto-man/target/debug/auto.exe`，可用
 `AUTO_CLI` 覆盖）、node + npx playwright 缓存（`PLAYWRIGHT_MODULE` 可显式指定
 playwright 入口）。入口实起后端与两端真实界面，逐项输出 PASS/FAIL，退出码 0/1。
+
+进程与端口边界（TODO-002 起）：验证入口对进程的终止只按本次 spawn 树授权
+（`taskkill /T` 于自有属根＋被观测的后端叶），端口只作观测——不杀端口属主、
+不按进程名/命令行杀进程；端口被占/坏工具/启动停滞均受控失败（非零退出＋诊断），
+重试只收割自有树。`--cold-prep` 只清理本仓自有 gitignored 生成物（`gen/`、
+`rust-workspace/`、`.auto/`），框架共享 target 永不清理；检测到疑似他人实例在跑
+时拒绝执行。运行边界规范见 [standalone-runtime.md](docs/specs/todo/standalone-runtime.md)。
 
 ## 来源与组合
 
@@ -48,12 +59,17 @@ AutoOS 通过 [`apps/auto-todo`](https://github.com/auto-stack/auto-os/tree/main
 开发使用独立 clone `D:/autostack/auto-todo` 的 main；AutoOS 内对应子模块仅固定已交付提交，流程见 [App开发与子模块](https://github.com/auto-stack/auto-os/blob/main/docs/design/strategy/app-submodule-workflow.md)。
 
 
-## 当前后续计划（2026-11-01）
+## 已交付：TODO-002 独立启动与进程隔离（2026-11-03）
 
-[TODO-002：独立启动、进程隔离与双端回归](docs/plans/002-standalone-process-isolation.md) 为 **drafting/r1、0/7，尚未实施**。收窄旧测试按端口/命令行清理进程的范围，证明旁观实例不受影响；补独立准备和真实双端重开后编辑，不强加新功能。
+[TODO-002：独立启动、进程隔离与双端回归](docs/plans/002-standalone-process-isolation.md) 已实施交付（工作阶段完成，T-00..T-04；最终复审与归档见其 §9）。交付内容：
 
-先T-00核验实际源码/CLI/编译或渲染tool、已有SDK、冷准备与失败边界；实证缺项才转实际owner最小前置。既有测试入口继续复用，历史绿总数不能替代新必需UI操作。只用隔离数据/本次进程；不清共享target或终止用户实例。无实证业务缺口时不为完成计划强改业务源码。
+- 验证入口进程清理收口为 spawn 树归属（移除 `kill_stale_backends`/`kill_port`），旁观实例与无关端口监听者隔离有常驻 oracle；
+- `--cold-prep` 独立冷准备模式（清自有生成物后冷首启，实测冷就绪约 248s，预算 600s）；
+- TD-01..04 落进既有 verify_basic 门：独立身份/数据根、端口冲突受控失败、强杀重开后真实 UI 再编辑（vue 经 Playwright、vm 经 AutoUI MCP 行内 ✓ 提交）、坏 schema 零写入与故障解除后继续写入、坏工具负控总门非零；
+- Spec 增量：[standalone-runtime.md](docs/specs/todo/standalone-runtime.md)（新增）与 [basic-capabilities.md](docs/specs/todo/basic-capabilities.md) §5（追加运行边界与当前证据）。
 
-[路线图](docs/roadmap-v0.6.md) · [现实现规范](docs/specs/todo/basic-capabilities.md)。开发与顺序复审在D:/autostack/auto-todo独立clone main，一app一写入者；不在OS组合子模块开发，不建junction/symlink。本轮只准备/提交push计划和导航，不实现、不改Spec/旧ledger和归档，不更新AutoOSpin。各app独立验收后由统一OS计划装配，Linux仍WAIT_DISTRO_M1。
+应用业务源码本轮零改动（`.at` 产品源与生成物语义沿 001）。已知环境观察沿 001 登记（VM UI 间歇退出、键盘 Enter 焦点路由），不阻塞验收。Linux 仍 WAIT_DISTRO_M1。
 
-旧verify_basic调度器存在按端口/命令行终止进程的路径；002会先核实/收窄再做新版回归，不直接用其清理用户实例。日期/提醒/项目与同步不在本轮。
+[路线图](docs/roadmap-v0.6.md) · [现实现规范](docs/specs/todo/basic-capabilities.md)。开发与顺序复审在D:/autostack/auto-todo独立clone main，一app一写入者；不在OS组合子模块开发，不建junction/symlink。各app独立验收后由统一OS计划装配。
+
+日期/提醒/项目与同步不在已交付范围。

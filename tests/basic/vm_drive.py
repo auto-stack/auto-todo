@@ -8,6 +8,7 @@ autoui_snapshot / autoui_state / autoui_type / autoui_keyboard / autoui_action�
 用法: python vm_drive.py <mcp-url> <mode>
   mode = full      ：创建/勾选/重启持久（重启由调度方负责，见 persist 子模式）
   mode = readonly  ：只读渲染 + 无种子检查（重启后的持久复核面）
+  mode = reedit    ：重启后再编辑（TD-03）：对锚点任务 StartEdit→CommitEdit 真实链
 输出：逐行 PASS/FAIL，末行 SUMMARY {json}；退出码 0/1。
 """
 
@@ -92,6 +93,21 @@ class Mcp:
         self.call("autoui_keyboard", key="Enter")
         return inp
 
+    def text_node_for(self, snap, text):
+        """携带任务文本的 vnode id（onclick: .StartEdit 的元素）。
+        VM 快照把可点击 text 投影为 button vnode（实测，见 T-00 探针），
+        故按 text|button 双类型匹配，× 删除按钮因文本不同不会误中。"""
+        m = re.search(r'(?:text|button) #(\S+) "%s"' % re.escape(text), snap)
+        return m.group(1) if m else None
+
+    def wait_rendered(self, text, timeout_s=15):
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if self.item_rendered(self.snapshot(), text):
+                return True
+            time.sleep(1.5)
+        return False
+
 
 def todos_from_state(st):
     m = re.search(r"todos:\s*\[", st)
@@ -136,6 +152,46 @@ def main():
         time.sleep(2)
     record("vm-render", "todos" in snap and "What needs to be done?" in snap, "App title + input visible")
     record("vm-no-seed", "Learn Auto Language" not in snap, "demo seed absent")
+
+    if mode == "reedit":
+        # TD-03: 强杀重开后的真实 UI 再编辑。前置（调度方保证）：列表恰含锚点任务。
+        anchor = "重启持久锚点-anchor"
+        record("vm-reedit-anchor-rendered", mcp.item_rendered(snap, anchor),
+               "anchor task visible after restart")
+        node = mcp.text_node_for(snap, anchor)
+        record("vm-reedit-startedit-node", node is not None, "StartEdit text vnode for anchor")
+        if node:
+            resp = mcp.click(node, action="press")
+            ok_edit_input = False
+            edit_inp = None
+            deadline = time.time() + 15
+            while time.time() < deadline:
+                s2 = mcp.snapshot()
+                edit_inp = mcp.find_by_event(s2, "CommitEdit", "onenter")
+                if edit_inp:
+                    ok_edit_input = True
+                    break
+                time.sleep(1.5)
+            record("vm-reedit-input-appeared", ok_edit_input,
+                   str(resp)[:120] if not ok_edit_input else "")
+            if ok_edit_input:
+                mcp.call("autoui_type", element_id=edit_inp, text="重开再编辑-VM-OK")
+                # 键盘 Enter 被路由到焦点 input 声明（主输入框），不会触发编辑行的
+                # onenter（实测 probe：state 不变）——改按编辑行真实 ✓ 提交按钮。
+                s3 = mcp.snapshot()
+                commit = None
+                for line in s3.splitlines():
+                    m2 = re.match(r'\s*button #(\S+) "✓"', line)
+                    if m2:
+                        commit = m2.group(1)
+                if commit:
+                    mcp.click(commit, action="press")
+                else:
+                    record("vm-reedit-commit-button", False, "✓ button not found")
+        record("vm-reedit-done", mcp.wait_rendered("重开再编辑-VM-OK"),
+               "anchor renamed via real UI after hard-kill restart")
+        print("SUMMARY " + json.dumps({"results": results}))
+        sys.exit(0 if all(r["ok"] for r in results) else 1)
 
     if mode == "readonly":
         print("SUMMARY " + json.dumps({"results": results}))

@@ -1,7 +1,8 @@
 # Spec：todo 基本能力（待办任务持久化与重启恢复）
 
 状态：本文件为 TODO-001（docs/plans/archived/001-durable-todos.md）SD-01/SD-02 的规范增量，
-随实现交付；合并阶段按 merge 技能固化为 canonical。
+随实现交付；合并阶段按 merge 技能固化为 canonical。TODO-002 追加独立运行边界与当前双端
+证据（§5），§1-§4 数据/失败/双端语义保持不变。
 
 ## 1. 用户任务与数据模型（SD-01 / AC-01）
 
@@ -64,3 +65,25 @@ Vue 与 VM 两端从实际 UI 完成 创建→编辑→完成→重开，回读�
   VM 轨快照对 `for` 行内 `onclick: .ToggleTodo(item.id)` 按字面显示（行上下文
   实际可解析，MCP toggle 实证 resolved）；VM UI 进程在 MCP 高频轮询下存在一次
   未复现的退出观察。上述缺口不阻塞 VM 端创建/持久/恢复验收。
+
+## 5. 独立运行边界与当前证据（TODO-002 SD-01 追加）
+
+- §1-§4 的数据/失败/双端语义保持不变；本节只登记运行边界与当前证据，防止运行门与
+  旧证据混计。独立运行、进程归属与清理、错误合同见
+  [standalone-runtime.md](standalone-runtime.md)。
+- 双端当前证据（冻结于 TODO-002 交付提交，工具身份逐轮记于 IDENTITY 日志行）：
+  - `verify_basic.py --api-only`：47/47 PASS（API/存储/恢复/故障注入/schema 拒绝/
+    进程隔离/负控，退出码 0）。
+  - `--profile vue`：74/74 PASS（Playwright 真实 UI 全流程＋强杀重开后真实 UI 再编辑，
+    独立 SQLite 复核）。
+  - `--profile vm`：69/69 PASS（AutoUI MCP 真实 UI 全流程＋强杀重开后真实 UI 再编辑，
+    独立 SQLite 复核）。
+  - 冷准备首启（`--cold-prep`：清本仓自有 gitignored `gen/`、`rust-workspace/`、
+    `.auto/` 后首次启动，实测冷就绪约 248s ≤ 600s 预算）在 vue/vm 复验通过。
+- 001 时代测试调度器中的 `kill_stale_backends`（按进程名/命令行）与 `kill_port`
+  （按端口属主）清理路径已移除；进程终止只由 spawn 树成员关系授权，端口仅作观测
+  （详见 standalone-runtime.md §2）。
+- VM 已知环境观察（不阻塞验收，沿 001 登记）：VM UI 进程存在与 001 时代一致的
+  间歇退出观察（旁观实例一次，库字节不变、门无任何命中它的终止操作）；键盘 Enter
+  路由到焦点 input 声明（主输入框）而不触发编辑行 onenter——再编辑经行内真实 ✓
+  按钮提交（真实 UI 输入链）。
