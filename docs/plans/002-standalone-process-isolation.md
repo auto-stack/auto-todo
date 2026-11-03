@@ -1,10 +1,10 @@
 ---
 plan_id: TODO-002
-status: execution_done
+status: reviewed
 feature_name: "独立启动、进程隔离与双端回归"
 author: [Codex]
 created_at: 2026-11-01
-updated_at: 2026-11-03（work 修复轮 F-01..F-03 闭项）
+updated_at: 2026-11-03（终审 re-review pass）
 plan_revision: 1
 current_step: 5
 total_steps: 7
@@ -102,7 +102,8 @@ T-00新增 `docs/plans/evidence/002/standalone-decision.md` 固定CLI/tool、启
   - [✅ 已完成] F-02 闭项：`src/back/repository.at` ensure_schema 版本路由收紧（无 meta/todos 时库内存在任何表 → `schema_unsupported` 纯读拒绝，仅真空库初始化；resume 分支同要求无额外用户表）；门内永久用例 td04-schema-foreign（widget 外来库拒读写+字节不变+换回 v1 后续写成功）；复审反例复放 cx4（v99/no-meta 双拒绝、零写入）通过。SD 候选同步（standalone-runtime.md §1 端口三类/预算对齐/并存条款、§3 外来数据库类，basic-capabilities §5 追加）。
 - [x] T-04（owner_stage=work；依赖T-03；AC-01..03）：更新运行说明、核对漂移/覆盖，提交execution_done。【review F-01 重开→已闭】
   - [✅ 已完成] F-01 闭项：standalone-runtime.md §1 预算对齐实现（service ≤600s/attempt、UI ≤900s/attempt、停滞收割自有树后至多重试一次），决策稿 §9 补记最终预算与 F-03 真因。漂移核对：本修复轮改动面 = src/back/repository.at（ensure_schema 路由，001 遗留缺口的 in-contract 修复，§1「有实证业务问题」条款）+ tests/basic/verify_basic.py（alloc_port + td04-schema-foreign）+ docs/specs + README；业务 UI/仓储其余面零改动。
-- [ ] T-05（owner_stage=review；依赖T-04；AC-04）：同clone独立上下文最终复审。
+- [x] T-05（owner_stage=review；依赖T-04；AC-04）：同clone独立上下文最终复审。
+  - [✅ 已完成] 终审 pass（含 re-review 轮）：受理基线 b2734c3 → needs_fix（F-01/F-02/F-03）→ 修复提交 4c51230 复审通过；复审自有反例在提交字节上复放（cx4 v99/no-meta 双拒绝零写入、cx5 并存整门 51/51）、静态审计（终止仅 spawn 树授权两处）、日志总数与 README 声称交叉核对一致（51/78/73/78 + 并存 51/51）。
 - [ ] T-06（owner_stage=merge；依赖T-05 pass；AC-05）：仅本app规范/归档/提交push收尾。
 
 ## 9. 复审记录
@@ -122,6 +123,7 @@ T-00新增 `docs/plans/evidence/002/standalone-decision.md` 固定CLI/tool、启
 
 - stage: work | plan_id: TODO-002 | plan_revision: r1 | outcome: pass（修复 F-01/F-02/F-03，T-01..T-04 重闭，execution_done 5/7） | worktree_path: D:/autostack/auto-todo | branch: main | base_commit: a34e455 | code_commit: 见本次修复提交（fix(review): TODO-002 F-01..F-03） | dependency_revisions: 同 work 收据 | task_ids: T-01..T-04（重开项） | evidence: 修复后基线 --api-only 51/51（含 td04-schema-foreign×4）、vue 78/78、vm 73/73、vue --cold-prep 78/78 全零退出；cx4 复放（v99/no-meta 双拒绝、四阶段字节稳定、无标记）；并存场景 cx5 复跑（一个存活 vm 实例旁整门 51/51 exit 0） | closure rows: F-02 → 不变量=打开门禁对一切外来结构零写入拒绝；受影响路径=ensure_schema no-meta fall-through + resume 分支；修复=两分支纯读拒绝（仅真空库/无额外用户表初始化）+ 门内永久用例；结果=cx4 复放 + 电池 4 用例全过；剩余边界=无（schema_v 任意值/外来表/损坏类均覆盖）。F-03 → 不变量=并存实例下可复验 + 三类端口处置；修复=alloc_port 七位点 + 受控诊断；结果=并存整门 51/51；**终审归因修正：cx3/cx5 的失败真因是共享构建产物/exe 文件锁争用（待重建映像被运行实例锁定，cargo「failed to remove file … os error 5」），端口段抽签只是次要防御面（alloc_port 保留为卫生加固）**——复审 finding 包中的端口归因由本收据更正，spec §1 并存条款按真因书写；运行期一次他仓会话活跃 build 造成同签名瞬态失败（42/1 后机器空闲复跑全绿，受控失败+重跑符合 §1 并存合同）。F-01 → 文案对齐，内容检查通过。 | blockers: 无 | 过程登记：复审期间自查发现并清理本会话崩溃探针泄漏的一个 service 进程树（属主=本会话，taskkill /T 收割）；plan-002 scratch 根下他仓产物未触碰 | next_responsible_role: review（T-05 终审 re-review，受影响面=打开门禁/端口分配/文档对齐/并存场景；UI 双端证据由修复后字节全新复跑覆盖）
 - stage: goal | plan_id: TODO-002 | plan_revision: r1 | round: 3 | from: review(needs_fix) | to: work | status: execution_done | outcome: pass | worktree: D:/autostack/auto-todo | commit: 修复提交（见上） | next: review
+- stage: review | review_scope: final（re-review，受影响面=打开门禁/端口分配/文档对齐/并存场景） | reviewer_identity/limitations: 同前（本会话实现+复审同一上下文，限制如实声明；结论由冻结提交与复审者自有反例重建） | plan_id: TODO-002 | plan_revision: r1 | outcome: pass（reviewed） | worktree_path: D:/autostack/auto-todo | branch: main | reviewed_commit: 4c51230（HEAD 96b0842 仅 docs/plans；树 clean） | base_commit: a34e455 | dependency_revisions: 同 work 收据（后端镜像随 F-02 修复重建，同 f3f98a9e/debug 路径） | spec_inputs: docs/specs/todo/standalone-runtime.md（§1 端口三类/预算对齐/并存条款、§3 外来数据库类）＋ basic-capabilities.md §5 ＋ 001 canonical §2/§3（F-02 修复使实现与 §2 既有规则一致，无规则变更） | acceptance_results: AC-01 PASS（td01-*/td02-* 全过：身份/数据根/冷准备/冲突受控+blocker存活/坏工具负控/旁观隔离六oracle/清理完整性；并存场景整门 51/51；cold-prep vue 78/78）AC-02 PASS（v01..v04 全套 + td03 双端真实UI强杀重开再编辑 + td04）AC-03 PASS（v03 全套 + td04-schema-foreign×4 + 故障注入三态 + 负控非零；无必需skip/零场景）AC-04 PASS（本轮：F-02 diff 逐行核对——两分支拒绝均在 WAL/DDL 认可路径前=零写入保持；cx4 复放在提交字节上复审者自跑通过；alloc_port 三类处置与 spec §1 文案一致；README/日志总数交叉核对一致） | pending_closeout_gates: AC-05 全部归 merge（canonical 固化/归档/提交push/cleanup） | findings: 无未闭项（F-01/F-02/F-03 关闭行见 work 修复收据） | evidence: fix2 四日志（api 51/51、vue 78/78、vm 73/73、vue-cold 78/78 全零退出零重试）＋ cx4 复审复放输出 ＋ cx5 并存复跑 51/51 ＋ b2734c3..4c51230 diff 审计 | next: merge（T-06）
 
 ## 10. 待澄清事项
 
