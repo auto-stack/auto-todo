@@ -6,6 +6,14 @@ icon: "list-checks"
 title: "Todo"
 title_zh: "待办清单"
 api: "rust"
+# PLAN-056 T-02（auto-os/PLAN-056 主合同反链见 README）：官方主题包正式
+# 接入——`vendor/themes` 为 UI 管理渠道发布的**固定版本快照**（themes 0.2.0，
+# 内容 digest 9fa07742dc68aa5377ae06cb2d966386002063f184c515b6c5dddf8a6bef838e，
+# 与源包逐文件 sha256 校验等价；不可二次编辑、非第二权威源）。theme 键保持
+# 缺省 = follow 语义（宿主策略完整快照 > 本 design 默认 > legacy 回退）。
+dep themes {
+    path: "vendor/themes"
+}
 desktop: "true"
 front_port: 17814
 back_port: 17815

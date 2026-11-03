@@ -5,6 +5,10 @@
 
 use todo_store: TodoStore
 use todo_list: TodoList
+// PLAN-056 T-02：官方主题包主题名导入（031 合同消费面——`dep themes` 声明
+// 使包可解析，本 use 把包内 pub 主题收进收集链；无此行 themes 树不注册，
+// design.theme/follow 宿主候选都会在 C-11 未注册拒绝）。
+use themes.themes: Auto
 
 // PLAN-637 Phase B token 化映射（2026-09-17，B1）：页面底 bg-gray-100→bg-background；
 // 标题 text-red-400→text-primary（TodoMVC 传承红按设计退休，角色=品牌强调）；卡面
@@ -18,6 +22,18 @@ widget App {
 
     model {
         var input str = ""
+    }
+
+    // PLAN-056 T-02：主题设计默认（独立默认腿）。theme="Auto" 经 pac
+    // `dep themes`（vendor/themes 固定快照）注册的官方树解析。本产品原为
+    // 纯浅色 TodoMVC（无 dark_mode 状态位、无明暗切换），独立默认腿取静态
+    // light 保现默认语义；桌面内宿主策略完整快照（family+mode）按 031
+    // full-host 语义整体接管（follow——pac theme 键保持缺省）。视图全部为
+    // 语义 token 类（bg-background/bg-card/text-primary 等），族内明暗由
+    // token 切换承接，无需视图级 dark 分支。
+    design {
+        theme: "Auto"
+        mode: "light"
     }
 
     view {

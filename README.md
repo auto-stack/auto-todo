@@ -78,3 +78,17 @@ AutoOS 通过 [`apps/auto-todo`](https://github.com/auto-stack/auto-os/tree/main
 [路线图](docs/roadmap-v0.6.md) · [现实现规范](docs/specs/todo/basic-capabilities.md)。开发与顺序复审在D:/autostack/auto-todo独立clone main，一app一写入者；不在OS组合子模块开发，不建junction/symlink。各app独立验收后由统一OS计划装配。
 
 日期/提醒/项目与同步不在已交付范围。
+
+## 主题（auto-os/PLAN-056 接入）
+
+本产品已接入 AutoUI **官方主题包**正式消费面（2026-11-03，PLAN-056 T-02）：
+
+- `vendor/themes` 为 UI 管理渠道发布的固定版本快照（`themes` 0.2.0，内容
+  digest `9fa07742dc68aa5377ae06cb2d966386002063f184c515b6c5dddf8a6bef838e`），
+  经 `pac.at` `dep themes` 消费；快照不可二次编辑、非第二权威源。
+- 主合同在 **auto-os/PLAN-056**：本产品 pac 无 `theme` 键 = **follow 宿主**
+  （宿主策略完整快照 > 本 `design` 默认 > legacy 回退）；`src/front/app.at`
+  `design { theme: "Auto", mode: "light" }` 为独立默认腿——本产品原为纯浅色
+  TodoMVC（无 dark_mode 位），静态 light 保现默认语义，`use themes.themes:
+  Auto` 注册收集链（C-11 合同）。视图全为语义 token 类，族内明暗由 token
+  切换承接。
