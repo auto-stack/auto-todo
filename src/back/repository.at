@@ -213,11 +213,30 @@ fn ensure_schema() str {
                     return "schema_unsupported"
                 }
             }
+            // F-02：库内不得有 meta/todos 之外的用户表——含他方表的数据文件
+            // 是外来结构，补齐同样等于静默收编，纯读拒绝
+            var extra_rows List<List<str>> = db.query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name!='meta' AND name!='todos'")
+            if extra_rows.len() > 0 {
+                var ec = extra_rows[0]
+                if parse_int(ec[0]) > 0 {
+                    return "schema_unsupported"
+                }
+            }
         }
     } else {
         if have_todos {
             // 无 meta 而有 todos：外来结构，拒绝
             return "schema_unsupported"
+        }
+        // F-02：无 meta 无 todos 时仅真空库（零表）允许全新初始化；
+        // 含任何表（含 sqlite 内部表）的数据文件是外来结构，纯读拒绝，
+        // 绝不把他人库文件收编为全新 todo 库
+        var all_rows List<List<str>> = db.query("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+        if all_rows.len() > 0 {
+            var ac = all_rows[0]
+            if parse_int(ac[0]) > 0 {
+                return "schema_unsupported"
+            }
         }
     }
     // ── 以下为认可路径（v1 既有库 = 零写入快路径；全新/中断库 = 补齐）──

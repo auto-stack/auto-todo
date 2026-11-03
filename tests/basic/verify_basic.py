@@ -167,6 +167,43 @@ def free_port():
     return p
 
 
+def alloc_port(max_tries=8):
+    """Random candidate port with usability pre-validation (F-03).
+
+    Three-way handling per the frozen port contract:
+      - owner present  = service conflict → skip candidate (the dedicated
+        conflict leg is the controlled-failure surface for occupied ports);
+      - no owner but bind refused = OS-reserved range (Hyper-V/WinNAT
+        exclusion churn) → next random candidate, each skip recorded;
+      - bindable → use it.
+    Bounded: max_tries candidates, then a fatal diagnostic — never an
+    unbounded scan, never killing anything.
+    """
+    skipped = []
+    for _ in range(max_tries):
+        p = free_port()
+        owner = port_owner(p)
+        if owner is not None:
+            skipped.append((p, "owner=%s" % owner))
+            continue
+        s = socket.socket()
+        try:
+            s.bind(("127.0.0.1", p))
+            if skipped:
+                print("NOTE: skipped unusable port candidates: %s" % skipped, flush=True)
+            return p
+        except OSError as e:
+            skipped.append((p, "bind refused: %s" % e))
+        finally:
+            try:
+                s.close()
+            except Exception:
+                pass
+    print("FATAL: no bindable port candidate after %d tries; skipped: %s" % (max_tries, skipped), flush=True)
+    record("port-allocation-exhausted", False, str(skipped)[:200])
+    sys.exit(1)
+
+
 def port_free_wait(port, timeout_s=10):
     """Wait until nothing listens on port (observation loop after our teardown)."""
     deadline = time.time() + timeout_s
@@ -379,8 +416,24 @@ def craft_valid_v1_db(db_path, tasks):
 
 # ---------------------------------------------------------------- batteries
 
+def craft_foreign_db(db_path):
+    """A valid SQLite file that belongs to ANOTHER application: unrelated
+    table with data, no meta/todos. The open gate must refuse it zero-write."""
+    import sqlite3
+    if os.path.exists(db_path):
+        os.remove(db_path)
+    for extra in (db_path + ".bak", db_path + ".recovering"):
+        if os.path.exists(extra):
+            os.remove(extra)
+    con = sqlite3.connect(db_path)
+    con.execute("CREATE TABLE widget (a INTEGER)")
+    con.execute("INSERT INTO widget VALUES (42)")
+    con.commit()
+    con.close()
+
+
 def api_battery(cli, workdir):
-    port = free_port()
+    port = alloc_port()
     data = os.path.join(workdir, "api-data")
     os.makedirs(data)
     logp = os.path.join(workdir, "api-service.log")
@@ -592,6 +645,37 @@ def api_battery(cli, workdir):
         read_ok = lst.get("ok") is True and [t["text"] for t in lst.get("todos", [])] == ["schema-恢复后任务"]
         code, body = http("POST", "http://127.0.0.1:%d/api/todos" % port, {"text": "schema-恢复后新写入"})
         record("td04-schema-fault-cleared-next-write-ok", read_ok and body.get("ok") is True, "")
+
+        # TD-04/F-02: a foreign database (valid SQLite, unrelated `widget`
+        # table with data, no meta/todos) must be refused zero-write — never
+        # silently adopted as a fresh todo store. Swapping in a valid v1 db
+        # restores normal service.
+        clean, detail = stop_run(proc, log, port, backend_pid=backend)
+        proc = log = backend = None
+        data3 = os.path.join(workdir, "api-data-foreign")
+        os.makedirs(data3)
+        dbp3 = os.path.join(data3, "todos.db")
+        craft_foreign_db(dbp3)
+        h_f = sha256_file(dbp3)
+        proc, log, backend = start_verified(cli, port, data3, log_path=logp + ".fg", timeout_s=600)
+        code, lst = http("GET", "http://127.0.0.1:%d/api/todos" % port)
+        record("td04-schema-foreign-read",
+               lst.get("ok") is False and lst.get("err_code") == "schema_unsupported",
+               json.dumps(lst, ensure_ascii=False)[:120])
+        code, body = http("POST", "http://127.0.0.1:%d/api/todos" % port, {"text": "no-adopt-foreign"})
+        record("td04-schema-foreign-write",
+               body.get("ok") is False and body.get("err_code") == "schema_unsupported", "")
+        record("td04-schema-foreign-zero-write",
+               sha256_file(dbp3) == h_f and not os.path.exists(dbp3 + ".recovering"),
+               "file bytes unchanged, no marker, widget data intact")
+        clean, detail = stop_run(proc, log, port, backend_pid=backend)
+        proc = log = backend = None
+        craft_valid_v1_db(dbp3, ["外来库换回后任务"])
+        proc, log, backend = start_verified(cli, port, data3, log_path=logp + ".fg", timeout_s=600)
+        code, lst = http("GET", "http://127.0.0.1:%d/api/todos" % port)
+        read_ok = lst.get("ok") is True and [t["text"] for t in lst.get("todos", [])] == ["外来库换回后任务"]
+        code, body = http("POST", "http://127.0.0.1:%d/api/todos" % port, {"text": "外来库换回后新写入"})
+        record("td04-schema-foreign-cleared-next-write-ok", read_ok and body.get("ok") is True, "")
     finally:
         if proc is not None:
             clean, detail = stop_run(proc, log, port, backend_pid=backend)
@@ -618,7 +702,7 @@ def standalone_battery(cli, workdir):
 
     bystander = None
     blog = None
-    bport = free_port()
+    bport = alloc_port()
     bdata = os.path.join(workdir, "bystander-data")
     os.makedirs(bdata)
     benv = dict(os.environ)
@@ -647,7 +731,7 @@ def standalone_battery(cli, workdir):
         bdb_sha = sha256_file(bdb)
 
         # Unrelated listener on its own port (harness-owned, non-app)
-        dport = free_port()
+        dport = alloc_port()
         dummy = spawn_dummy_listener(dport)
         time.sleep(1)
         dummy_ok0 = pid_alive(dummy.pid)
@@ -664,7 +748,7 @@ def standalone_battery(cli, workdir):
                "exit=%d" % run_bad.returncode)
 
         # TD-01: port occupied (by our dummy) → controlled failure, no scan, no kill
-        cport = free_port()
+        cport = alloc_port()
         blocker = spawn_dummy_listener(cport)
         time.sleep(1)
         os.makedirs(os.path.join(workdir, "conflict-data"), exist_ok=True)
@@ -681,7 +765,7 @@ def standalone_battery(cli, workdir):
         tree_kill(blocker.pid)
 
         # TD-02 legs on OUR main service: normal exit + hard-kill leaf
-        mport = free_port()
+        mport = alloc_port()
         mdata = os.path.join(workdir, "main-data")
         os.makedirs(mdata)
         proc_m, log_m, backend_m = start_verified(cli, mport, mdata,
@@ -746,8 +830,8 @@ def standalone_battery(cli, workdir):
 
 
 def ui_battery(cli, workdir, profile):
-    back = free_port()
-    front = free_port()
+    back = alloc_port()
+    front = alloc_port()
     mcp_port = None
     data = os.path.join(workdir, "ui-data")
     os.makedirs(data)
@@ -755,7 +839,7 @@ def ui_battery(cli, workdir, profile):
     env = dict(os.environ)
     env["AUTO_TODO_DATA"] = data
     if profile == "vm":
-        mcp_port = free_port()
+        mcp_port = alloc_port()
         env["AUTOUI_MCP_PORT"] = str(mcp_port)
 
     def spawn_run(log):
