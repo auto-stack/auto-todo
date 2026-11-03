@@ -1,6 +1,6 @@
 # Spec：独立启动、进程隔离与运行边界（TODO-002 SD-02）
 
-状态：本文件为 TODO-002（docs/plans/002-standalone-process-isolation.md）SD-02 的规范增量
+状态：本文件为 TODO-002（docs/plans/archived/002-standalone-process-isolation.md）SD-02 的规范增量
 提案稿，随实现交付；最终以 merge 固化为 canonical。用户数据语义沿
 [basic-capabilities.md](basic-capabilities.md)（其状态节含 SD-01 修订）。
 

@@ -66,7 +66,7 @@ AutoOS 通过 [`apps/auto-todo`](https://github.com/auto-stack/auto-os/tree/main
 
 ## 已交付：TODO-002 独立启动与进程隔离（2026-11-03）
 
-[TODO-002：独立启动、进程隔离与双端回归](docs/plans/002-standalone-process-isolation.md) 已实施交付（工作阶段完成，T-00..T-04；最终复审与归档见其 §9）。交付内容：
+[TODO-002：独立启动、进程隔离与双端回归](docs/plans/archived/002-standalone-process-isolation.md) 已实施交付并归档（7/7；工作/复审/merge 记录见其 §9）。交付内容：
 
 - 验证入口进程清理收口为 spawn 树归属（移除 `kill_stale_backends`/`kill_port`），旁观实例与无关端口监听者隔离有常驻 oracle；
 - `--cold-prep` 独立冷准备模式（清自有生成物后冷首启，实测冷就绪约 248s，预算 600s）；
