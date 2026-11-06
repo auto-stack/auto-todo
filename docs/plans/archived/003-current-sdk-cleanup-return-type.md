@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-003
-status: reviewed
+status: archived
 feature_name: 当前SDK清理包装返回类型对齐
 author: [Codex]
 created_at: 2026-11-06
-updated_at: 2026-11-06
+updated_at: 2026-11-07
 plan_revision: 2
-current_step: 3
+current_step: 4
 total_steps: 4
 base_branch: main
 base_commit: 153710720964c9c4b4fcb302b5f401474f1d606c
@@ -62,7 +62,7 @@ work核所有调用方及一行差异、执行当前SDK正式Rust生成编译；
 - [x] T00 owner_stage=work：确认返回类型与六调用方无结果消费。
 - [x] T01 owner_stage=work：一行注解修复、正式构建、工作提交。
 - [x] T02 owner_stage=review：独立复审当前提交与无规范影响结论。
-- [ ] T03 owner_stage=merge：父实际消费、push/归档与回执；保留开发clone。
+- [x] T03 owner_stage=merge：父实际消费、push/归档与回执；保留开发clone。
 
 ## 9. 复审记录
 
@@ -103,3 +103,8 @@ work核所有调用方及一行差异、执行当前SDK正式Rust生成编译；
   Independent final source/Spec pass retained from recorded review; this successor changes only approved canonical documentation and Plan bookkeeping. Parent054 actual SDK195 Vue/iced both8required8pass0fail, all6nativev15 formally rebuilt/18artifactbindings/67inputhashes. Current task/reopen/next native andVue independent receipts are in D:/autostack/plan-artifacts/plan-054/t04; native todo oracle and canonical-vue-todo-oracle-r195.json bind full current consumer behavior. Notes id9rev3 fullChinese, Calendar ev4delete/allversionsabsent/reopen/generationg-new/rev11→12/ev5next/oldev3exact, Todo id1edit/done1/reopen/nextedit, Blog workw-1793988759935-1fulltitle/multiline/reopen/nextSave/current+revision8; relevant app behavior is verified, not substituted by API prewrite. Blog oldnativework titles remain complete; sourcephase unchanged.
   Parent permanentpacket gates: icedSHA cd232e671e0aa7a3c1e0637a5a98e055eb9343345756faf231ca442e1e2cc042; VueSHA 9c91aadc95570bc78e24251bfa44939b99b7c12fed25cd096de55360eb09db1d. Each current validator actual8/8exit0; Vue description-only metadata corrected from copied194label without changingcases/SDK/data/frames. Work source tree 08c98f653933e3eea4984951c309dda492510855 / pacblob a4f51454aa4e3cfafe61186087ecc9a01f63c4a6 frozen for final Doc descendant check. No wholecatalog rerun. Canonical delta matches reviewed proposal; Todo no-impact Spec conclusion retained because privatecleanup result annotation only and all6callers ignore result.
   Permanent independent app clone is retained per user policy. Foreign untracked WIP is untouched. Shared raw evidence remains protected by active parent054 for its finalreview, not a separate archived-child raw scope or indefinite hold. Final push/archive and parentfinalpin are not yet claimed.
+
+
+- stage:merge | completion_kind:delivered | checkpoints:landed/canonical_verified/archived/cleaned | delivery_commit:2ce1a6ba76fb12590a9d50d96763f33415a10979 | outcome:pass | archive:docs/plans/archived/003-current-sdk-cleanup-return-type.md
+  Independent merge-document audit /root/review_app_sdk passed this exact prepared commit: approved canonical delta accurate, src/pac byte-equivalent to reviewedsource, actualparent195Vue/native V03 complete, no new source/Specgap. Current canonical hashes {}. Permanentclone retained by explicit user app rule; no temporary appworktree toremove. Foreign untracked WIP preserved, not mislabeled clean; allPlan-owned tracked changes committed. Sharedraw stays inside activeparent054scope until its own finalreview/cleanup, no duplicatechildscope/legacyledger/index write. FinalREADME/source links resolve to actualarchivedPlan.
+  Production-facing artifact observation (landing is documentation/source publication, not deployment): parent fixedSDK195 candidate formally rebuilt and actually ran this app on bothtracks. Permanentclone local generated executables were not redeployed by this docs-only closeout: rust-workspace\auto-todo-57df9a6e\bin\debug\todo.exe modified 2026-11-06T21:29:17.321259. They must be regenerated through the standard current SDK before standalone production use; no foreignservice restart.
