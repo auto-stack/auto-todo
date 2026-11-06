@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-003
-status: execution_done
+status: reviewed
 feature_name: 当前SDK清理包装返回类型对齐
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
 plan_revision: 2
-current_step: 2
+current_step: 3
 total_steps: 4
 base_branch: main
 base_commit: 153710720964c9c4b4fcb302b5f401474f1d606c
@@ -61,7 +61,7 @@ work核所有调用方及一行差异、执行当前SDK正式Rust生成编译；
 
 - [x] T00 owner_stage=work：确认返回类型与六调用方无结果消费。
 - [x] T01 owner_stage=work：一行注解修复、正式构建、工作提交。
-- [ ] T02 owner_stage=review：独立复审当前提交与无规范影响结论。
+- [x] T02 owner_stage=review：独立复审当前提交与无规范影响结论。
 - [ ] T03 owner_stage=merge：父实际消费、push/归档与回执；保留开发clone。
 
 ## 9. 复审记录
@@ -84,3 +84,16 @@ work核所有调用方及一行差异、执行当前SDK正式Rust生成编译；
 - stage:work | revision:r2 | round:4 | outcome:execution_done2/4 | code_commit:e69a83c7bc2d47c2dd9bbcbab1fa955c7b085546 | next: independent source/Spec review
   Actual currentSDK formal native build and scoped checks: r183 exit0/24.16s; only private return annotation changed, all6 callers ignore result. SDK CLI84ffcd0782475f4a9f77ac626042c7a1354b23270930b985531f74212602425b / UItool56e50b44b3ff33c44a7fd61c1860e0fefeaa0efe7dd55fd6d1e7c9cf60382ea7, selected Langf032/UIa1db/Man2a9/OS5e18. Published artifact hash, generation inputs and exact current core dependency were checked for the actual generated-Rust execution; no copied implementation, stale binary or GUI/OS input synthesis. Unknown untracked front tmp/tests remain untouched; Notes formal receipt has no untracked src input.
   Legacy generated GPU lock reconciliation is configuration only: cargo offline recursive update of allocator changes only its windows0.57→0.58 edge (no package version changes), identical to SDK. Before locks/logs retained; failed old-lock builds explicitly not counted. Scope ordinary app data files/directories, not arbitrary device/IPC resources. Existing unrelated application/UI/schema mechanisms remain unchanged; parent current-SDK actual tasks and final closeout still pending.
+
+
+### Independent source / Spec review — 2026-11-06
+
+- stage: review | review_scope: final | reviewer_identity: delegated independent Codex context /root/review_app_sdk (no implementation performed; model identity not exposed) | plan_revision: 2 | outcome: pass
+- worktree_path: D:/autostack/auto-todo | branch: main | reviewed_commit: b4be3ba86cdea52f06c5b00aae89f052c0a77f79 | base_commit: 153710720964c9c4b4fcb302b5f401474f1d606c. Existing real clone and single worktree verified with `git worktree list --porcelain`; user app-main rule governs. Implementation writes paused; tracked source clean at entry and verdict. Foreign untracked directories retained. Review skill and verification-contract read in full.
+- dependency_revisions: Lang f03226e10 / UI a1db3d79 / Man 2a9b16e / OS 5e186935; SDK frozen-sdk-r176 CLI SHA256 84ffcd0782475f4a9f77ac626042c7a1354b23270930b985531f74212602425b.
+- spec_inputs SHA256: standalone-runtime=70d0751270bd775a7006618b75e85c4a9e9defdca22b46791f5df61e29fe4763; basic-capabilities=cee44ad1ed25b53fb9259da111c86dc1fd96f67a8b3504f5e3cde403cb7168be; frozen proposed `### 规范增量` text SHA256: 481a285fa06c33cd507ed41b2fe996813070dab58b1bd8153f2442605ff3329b. Canonical Specs and legacy ledger untouched. `touched_goals: []` is appropriate: this is existing goal compatibility, no new goal identity.
+- acceptance_results: AC01 pass — actual source diff is one private bool→int return annotation, body unchanged; all six fs_delete callers are standalone ignored-result statements, preserving cleanup order and data/public behavior. Reuse formal SDK native r183 exit0/24.16s; independently verified generation pac/src hashes and published exe SHA256 f7514ae1395f4b7fead8eeb6d4dcbd4bffa564fa26b62af99d6d37769def0066. AC02 pass — source boundary and no-impact Spec proposal confirmed; untracked deps retained, no mirrored test needed for this type-only repair. AC03 pending merge-owned.
+- source/provenance: generation.json SHA256 759175cbeb5641ea82b75ec042a77f197fd1212dc03e2f2b29ec7d66d09bb393; native actual build log app-compat-native-r183-results.json / auto-todo-compat-native-r183.log under parent054/t07. Existing cleanup calls already discard numeric result; no new error-handling promise. GPU reconciliation inspected, only allocator windows edge 0.57→0.58, no package upgrades. No Cargo/global suite rerun.
+- findings: none. Empty new/superseded Spec component lists are justified by private annotation-only compatibility; existing standalone build and durable-data Specs remain authoritative.
+- pending_closeout_gates: T03 parent054 actual current-SDK Todo create/edit/reopen and data check, reviewed-source push/candidate fetch, final source-equivalent document successor, final push/pin/archive. T03 source-stage publication before candidate consumption is explicitly authorized, named and self-consistent; this pass covers work/source/Spec review, not child final delivery or those future gates.
+- next: merge owner may publish the named reviewed source stage; finish parent actual tasks and all T03 closeout before final delivery. T02 complete; current_step=3/4; no push, pin, merge or archive performed by review.
