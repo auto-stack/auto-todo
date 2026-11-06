@@ -1,12 +1,12 @@
 ---
 plan_id: TODO-003
-status: drafting
+status: executing
 feature_name: 当前SDK清理包装返回类型对齐
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
 plan_revision: 1
-current_step: 0
+current_step: 1
 total_steps: 4
 base_branch: main
 base_commit: 153710720964c9c4b4fcb302b5f401474f1d606c
@@ -59,7 +59,7 @@ work核所有调用方及一行差异、执行当前SDK正式Rust生成编译；
 
 ## 8. 执行步骤
 
-- [ ] T00 owner_stage=work：确认返回类型与六调用方无结果消费。
+- [x] T00 owner_stage=work：确认返回类型与六调用方无结果消费。
 - [ ] T01 owner_stage=work：一行注解修复、正式构建、工作提交。
 - [ ] T02 owner_stage=review：独立复审当前提交与无规范影响结论。
 - [ ] T03 owner_stage=merge：父实际消费、push/归档与回执；保留开发clone。
@@ -71,3 +71,7 @@ work核所有调用方及一行差异、执行当前SDK正式Rust生成编译；
 ## 10. 待澄清事项
 
 无新决定。正式编译/独立复审/集成/交付均pending。
+
+
+- stage:work | revision:r1 | round:1 | outcome:T00 complete/T01 code ready for type build
+  Current SDK File::delete returnsi64; all6 private wrapper callers are standalone statements, no predicate/assignment/return consumption. Implementation changes only bool→int annotation; body and call order identical. No public storage or UI contract changes and no new mirror test. Formal currentSDK native build pending; no app pin upgrade or push yet.

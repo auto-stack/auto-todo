@@ -92,3 +92,6 @@ AutoOS 通过 [`apps/auto-todo`](https://github.com/auto-stack/auto-os/tree/main
   TodoMVC（无 dark_mode 位），静态 light 保现默认语义，`use themes.themes:
   Auto` 注册收集链（C-11 合同）。视图全为语义 token 类，族内明暗由 token
   切换承接。
+
+
+当前 SDK 私有清理返回类型对齐见 [TODO-003](docs/plans/003-current-sdk-cleanup-return-type.md)，由 [AutoOS PLAN-054](../auto-os/docs/plans/054-basic-apps-unified-assembly.md) 验证共同工具链实际消费。

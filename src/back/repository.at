@@ -115,7 +115,7 @@ fn fault() str {
 
 /// fs.delete 包装：a2r 发射器对语句位 fs_delete(var) 按值移动 String
 /// （E0382），经 str 参数包装取得借用语义。
-fn fs_delete(p str) bool {
+fn fs_delete(p str) int {
     return fs.delete(p)
 }
 
